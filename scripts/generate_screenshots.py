@@ -594,8 +594,8 @@ def main():
     generate_screenshot_05_intake()
     generate_screenshot_06_reports()
     generate_screenshot_07_process_flow()
-    print(f"[SUCCESS] All screenshots saved locally in: {SCREENSHOTS_DIR}")
-    print("[SECURITY] Verified that screenshots/ is protected by .gitignore and will not be pushed to git.")
+    print(f"[SUCCESS] All screenshots saved in: {SCREENSHOTS_DIR}")
+    print("[INFO] Screenshots are ready for GitHub README documentation.")
 
 
 if __name__ == "__main__":

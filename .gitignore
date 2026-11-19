@@ -53,9 +53,6 @@ desktop.ini
 data/vault_storage/*
 !data/vault_storage/.gitkeep
 
-# Local screenshots and captured media (Never push to git)
-screenshots/
-*.png
-*.jpg
-*.jpeg
+# Screenshots
+!screenshots/*.png
 !screenshots/.gitkeep

@@ -92,6 +92,9 @@ KUSTODRA features an enterprise asset management user interface modeled after fo
 
 ## 5. System Architecture & Cryptographic Pipeline
 
+![Process Flow Architecture](screenshots/07-process-flow-architecture.png)
+*Figure 5: High-level architectural pipeline and forensic security lifecycle.*
+
 ```
 [ Artifact Ingestion ] ---> [ Binary Magic Byte & MIME Inspector ]
                                            |
