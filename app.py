@@ -161,8 +161,12 @@ def main() -> None:
     db = DatabaseManager(db_path)
     init_app_state(db)
 
-    # Check URL parameters for direct artifact linking (e.g. ?artifact_id=ART-2026-0001)
+    # Check URL parameters for direct page or artifact linking (e.g. ?nav=Integrity+Lab or ?artifact_id=ART-2026-0001)
     query_params = st.query_params
+    nav_param = query_params.get("nav") or query_params.get("page")
+    if nav_param:
+        st.session_state["active_nav"] = nav_param
+
     target_id = query_params.get("artifact_id") or query_params.get("evidence_id")
     if target_id:
         st.session_state["selected_evidence_id"] = target_id
