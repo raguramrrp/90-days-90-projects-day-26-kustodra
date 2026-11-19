@@ -5,8 +5,8 @@ echo ======================================================================
 echo    Starting TRACEVAULT - Digital Evidence Workstation
 echo ======================================================================
 
-if not exist .venv\Scripts\streamlit.exe (
-    echo [ERROR] Virtual environment or Streamlit not detected.
+if not exist .venv\Scripts\python.exe (
+    echo [ERROR] Virtual environment not detected.
     echo Please execute setup.bat first to configure dependencies.
     echo.
     pause
@@ -18,7 +18,7 @@ echo Local URL: http://localhost:8501
 echo Press Ctrl+C in this terminal window to stop the workstation.
 echo.
 
-.\.venv\Scripts\streamlit.exe run app.py --server.port=8501 --server.headless=false
+.\.venv\Scripts\python.exe -m streamlit run app.py --server.port=8501 --server.headless=false
 
 if %errorlevel% neq 0 (
     echo.
