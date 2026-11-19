@@ -1,4 +1,6 @@
-# TRACEVAULT - Quick Start Guide
+# KUSTODRA — Quick Start Guide
+**Digital Asset Custody & Cryptographic Integrity Verification System**  
+*Every artifact. Every transfer. Every verification. Documented.*
 
 Get up and running in under 2 minutes on Windows.
 
@@ -9,7 +11,7 @@ Get up and running in under 2 minutes on Windows.
    ```cmd
    setup.bat
    ```
-   This will create `.venv`, install dependencies, initialize the database, and seed realistic demo files.
+   This will create `.venv`, install dependencies, initialize the database, and seed baseline benchmark records.
 
 3. Launch the workstation:
    ```cmd
@@ -27,7 +29,7 @@ call .venv\Scripts\activate.bat
 :: 2. Install requirements
 pip install -r requirements.txt
 
-:: 3. Seed demo database
+:: 3. Seed baseline database
 python scripts\seed_demo_data.py
 
 :: 4. Run tests

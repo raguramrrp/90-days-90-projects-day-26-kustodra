@@ -4,7 +4,7 @@ setlocal
 cd /d "%~dp0"
 
 echo ======================================================================
-echo    Starting TRACEVAULT - Digital Evidence Workstation
+echo    Starting KUSTODRA - Digital Asset Management System
 echo ======================================================================
 
 if not exist .venv\Scripts\python.exe (
@@ -24,6 +24,6 @@ echo.
 
 if %errorlevel% neq 0 (
     echo.
-    echo [ERROR] TRACEVAULT exited unexpectedly with code %errorlevel%.
+    echo [ERROR] KUSTODRA exited unexpectedly with code %errorlevel%.
     pause
 )

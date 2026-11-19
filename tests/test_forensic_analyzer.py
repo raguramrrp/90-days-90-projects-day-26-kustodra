@@ -1,9 +1,9 @@
 """
-Unit tests for TRACEVAULT Forensic Analyzer and Classifier.
+Unit tests for KUSTODRA Forensic Analyzer and Classifier.
 """
 
 import pytest
-from tracevault.core.forensic_analyzer import ForensicAnalyzer
+from kustodra.core.forensic_analyzer import ForensicAnalyzer
 
 
 def test_classify_evidence():

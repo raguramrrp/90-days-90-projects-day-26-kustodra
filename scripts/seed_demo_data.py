@@ -1,6 +1,6 @@
 """
-TRACEVAULT - Database Seeding Script
-Populates initial system users, investigative cases, registered evidence exhibits,
+KUSTODRA - Database Baseline Seeding Script
+Populates initial system users, investigative cases, cataloged artifacts,
 custody transfer logs, integrity verification records, and chained audit logs.
 """
 
@@ -13,20 +13,20 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from tracevault.database import DatabaseManager, get_iso_now
-from tracevault.core.crypto_engine import CryptoEngine
-from tracevault.core.metadata_inspector import MetadataInspector
-from tracevault.core.forensic_analyzer import ForensicAnalyzer
-from tracevault.core.custody_manager import CustodyManager
-from tracevault.core.audit_engine import AuditEngine
+from kustodra.database import DatabaseManager, get_iso_now
+from kustodra.core.crypto_engine import CryptoEngine
+from kustodra.core.metadata_inspector import MetadataInspector
+from kustodra.core.forensic_analyzer import ForensicAnalyzer
+from kustodra.core.custody_manager import CustodyManager
+from kustodra.core.audit_engine import AuditEngine
 from scripts.generate_sample_evidence import create_sample_files
 
 
 def seed_database(db_path: str | Path | None = None,
                   storage_dir: str | Path | None = None,
                   samples_dir: str | Path | None = None) -> None:
-    """Populate database with clean, realistic forensic demonstration records."""
-    db_file = Path(db_path) if db_path else PROJECT_ROOT / "data" / "tracevault.db"
+    """Populate database with clean, realistic benchmark records."""
+    db_file = Path(db_path) if db_path else PROJECT_ROOT / "data" / "kustodra.db"
     storage_path = Path(storage_dir) if storage_dir else PROJECT_ROOT / "data" / "vault_storage"
     samples_path = Path(samples_dir) if samples_dir else PROJECT_ROOT / "data" / "sample_evidence"
 
@@ -42,8 +42,8 @@ def seed_database(db_path: str | Path | None = None,
     users = [
         ("USR-101", "examiner", "Forensic Examiner", "Senior Examiner", "EX-01", "Digital Forensics Laboratory", "examiner@forensics.lab"),
         ("USR-102", "investigator", "Lead Investigator", "Case Investigator", "INV-01", "Cybercrime Investigation Unit", "investigator@investigations.unit"),
-        ("USR-103", "custodian", "Evidence Custodian", "Vault Custodian", "CUST-01", "Central Evidence Depository", "custodian@vault.depository"),
-        ("USR-104", "legal", "Legal Liaison", "Evidence Reviewer", "REV-01", "Legal Discovery Office", "legal@discovery.office"),
+        ("USR-103", "custodian", "Vault Custodian", "Asset Custodian", "CUST-01", "Central Vault Depository", "custodian@vault.depository"),
+        ("USR-104", "legal", "Legal Liaison", "Compliance Reviewer", "REV-01", "Legal Discovery Office", "legal@discovery.office"),
     ]
     for u in users:
         db.add_user(*u)
@@ -57,12 +57,12 @@ def seed_database(db_path: str | Path | None = None,
     for c in cases:
         db.add_case(*c)
 
-    # 2. Register initial evidence items
-    print("[INFO] Registering forensic evidence artifacts...")
+    # 2. Register initial artifact items
+    print("[INFO] Cataloging forensic artifacts...")
 
     evidence_defs = [
         {
-            "evidence_id": "EV-2026-0001",
+            "evidence_id": "ART-2026-0001",
             "case_id": "CASE-2026-0842",
             "title": "Gateway Server Access Log",
             "description": "HTTP server access log with authentication probe and extraction records.",
@@ -75,7 +75,7 @@ def seed_database(db_path: str | Path | None = None,
             "collection_date": "2026-11-18 04:45:00 UTC"
         },
         {
-            "evidence_id": "EV-2026-0002",
+            "evidence_id": "ART-2026-0002",
             "case_id": "CASE-2026-0915",
             "title": "Perimeter Cam 04 Still Frame",
             "description": "Security camera still frame captured during perimeter alarm trigger.",
@@ -88,7 +88,7 @@ def seed_database(db_path: str | Path | None = None,
             "collection_date": "2026-11-18 04:16:30 UTC"
         },
         {
-            "evidence_id": "EV-2026-0003",
+            "evidence_id": "ART-2026-0003",
             "case_id": "CASE-2026-0842",
             "title": "Financial Transaction Audit Ledger",
             "description": "Exported transaction ledger detailing transfer records and account routing.",
@@ -101,7 +101,7 @@ def seed_database(db_path: str | Path | None = None,
             "collection_date": "2026-11-18 08:30:00 UTC"
         },
         {
-            "evidence_id": "EV-2026-0004",
+            "evidence_id": "ART-2026-0004",
             "case_id": "CASE-2026-0114",
             "title": "Technical Specification Notes",
             "description": "Specification document outlining system parameters and hashing standards.",
@@ -114,7 +114,7 @@ def seed_database(db_path: str | Path | None = None,
             "collection_date": "2026-11-17 16:00:00 UTC"
         },
         {
-            "evidence_id": "EV-2026-0005",
+            "evidence_id": "ART-2026-0005",
             "case_id": "CASE-2026-0842",
             "title": "Suspicious Encrypted Binary Payload",
             "description": "High-entropy binary artifact discovered in system temporary directory.",
@@ -169,20 +169,20 @@ def seed_database(db_path: str | Path | None = None,
 
         # Record chained audit log
         audit.log_event(
-            event_type="EVIDENCE_REGISTERED",
+            event_type="ARTIFACT_REGISTERED",
             user_id=item["registered_by_id"],
             evidence_id=item["evidence_id"],
-            details=f"Evidence {item['evidence_id']} ('{item['title']}') registered with SHA-256: {hashes['sha256'][:16]}..."
+            details=f"Artifact {item['evidence_id']} ('{item['title']}') cataloged with SHA-256: {hashes['sha256'][:16]}..."
         )
 
-    # 3. Seed verified status on EV-2026-0001
-    print("[INFO] Executing initial baseline integrity check on EV-2026-0001...")
-    ev1 = db.get_evidence_by_id("EV-2026-0001")
+    # 3. Seed verified status on ART-2026-0001
+    print("[INFO] Executing initial baseline integrity check on ART-2026-0001...")
+    ev1 = db.get_evidence_by_id("ART-2026-0001")
     if ev1:
         check_id = "CHK-INIT-0001"
         db.add_integrity_check({
             "check_id": check_id,
-            "evidence_id": "EV-2026-0001",
+            "evidence_id": "ART-2026-0001",
             "checked_by_id": "USR-101",
             "check_timestamp": get_iso_now(),
             "expected_sha256": ev1["sha256_hash"],
@@ -195,14 +195,14 @@ def seed_database(db_path: str | Path | None = None,
         audit.log_event(
             event_type="INTEGRITY_CHECK_MATCH",
             user_id="USR-101",
-            evidence_id="EV-2026-0001",
+            evidence_id="ART-2026-0001",
             details="Cryptographic SHA-256 verification MATCH confirmed against intake baseline."
         )
 
     # 4. Record initial custody transfers
     print("[INFO] Logging custody transfer events...")
     custody.transfer_custody(
-        evidence_id="EV-2026-0001",
+        evidence_id="ART-2026-0001",
         sender_id="USR-102",
         receiver_id="USR-101",
         transfer_reason="Forensic Lab Analysis",
@@ -212,20 +212,20 @@ def seed_database(db_path: str | Path | None = None,
         current_file_hash=ev1["sha256_hash"]
     )
 
-    ev2 = db.get_evidence_by_id("EV-2026-0002")
+    ev2 = db.get_evidence_by_id("ART-2026-0002")
     if ev2:
         custody.transfer_custody(
-            evidence_id="EV-2026-0002",
+            evidence_id="ART-2026-0002",
             sender_id="USR-101",
             receiver_id="USR-103",
             transfer_reason="Secure Long-Term Vault Storage",
             recorded_by_id="USR-101",
-            notes="Intake inspection completed. Transferred to Central Evidence Depository.",
+            notes="Intake inspection completed. Transferred to Central Vault Depository.",
             verify_hash_now=True,
             current_file_hash=ev2["sha256_hash"]
         )
 
-    print("[SUCCESS] Database seeded successfully with clean forensic demo records!")
+    print("[SUCCESS] Database seeded successfully with clean benchmark records!")
 
 
 if __name__ == "__main__":

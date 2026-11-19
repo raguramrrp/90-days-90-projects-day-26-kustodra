@@ -4,7 +4,7 @@ setlocal
 cd /d "%~dp0"
 
 echo ======================================================================
-echo    TRACEVAULT - Running Automated Test Suite
+echo    KUSTODRA - Running Automated Test Suite
 echo ======================================================================
 
 if not exist .venv\Scripts\python.exe (
@@ -25,5 +25,5 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [PASS] All 21 TRACEVAULT automated test cases passed successfully!
+echo [PASS] All KUSTODRA automated test cases passed successfully!
 exit /b 0

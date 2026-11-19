@@ -7,8 +7,8 @@ Provides verification routines to detect database record manipulation.
 from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple
 
-from tracevault.database import DatabaseManager, get_iso_now
-from tracevault.core.crypto_engine import CryptoEngine
+from kustodra.database import DatabaseManager, get_iso_now
+from kustodra.core.crypto_engine import CryptoEngine
 
 
 class AuditEngine:

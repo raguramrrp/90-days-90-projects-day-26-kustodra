@@ -1,9 +1,9 @@
 """
-Unit tests for TRACEVAULT Report Generator (ReportLab PDF & Markdown).
+Unit tests for KUSTODRA Report Generator (ReportLab PDF & Markdown).
 """
 
 import pytest
-from tracevault.core.report_generator import ReportGenerator
+from kustodra.core.report_generator import ReportGenerator
 
 
 @pytest.fixture

@@ -4,7 +4,7 @@ setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 
 echo ======================================================================
-echo    TRACEVAULT - Digital Evidence Integrity & Custody Setup (Windows)
+echo    KUSTODRA - Digital Asset Management System Setup (Windows)
 echo    Day 26 - 90 Days 90 Projects Challenge
 echo ======================================================================
 echo.
@@ -80,7 +80,7 @@ if not exist .env (
 
 :: 5. Initialize database and seed demo data
 echo.
-echo [5/5] Initializing SQLite schema and seeding forensic demo data...
+echo [5/5] Initializing SQLite schema and seeding baseline benchmark records...
 .\.venv\Scripts\python scripts\seed_demo_data.py
 if %errorlevel% neq 0 (
     echo [ERROR] Failed to seed database.
@@ -89,7 +89,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo ======================================================================
-echo    TRACEVAULT Setup Complete!
+echo    KUSTODRA Setup Complete!
 echo ======================================================================
 echo To start the workstation, run:  run.bat
 echo To execute automated tests, run: test.bat

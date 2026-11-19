@@ -1,5 +1,5 @@
 """
-TRACEVAULT - Database Management Module
+KUSTODRA - Database Management Module
 Handles SQLite schema definition, migrations, and parameterized data access.
 """
 
@@ -20,10 +20,34 @@ def get_iso_now() -> str:
 class DatabaseManager:
     """Manages SQLite connection, schema initialization, and transactional queries."""
 
-    def __init__(self, db_path: str | Path = "data/tracevault.db"):
+    def __init__(self, db_path: str | Path = "data/kustodra.db"):
         self.db_path = Path(db_path)
+        if not self.db_path.exists():
+            legacy_path = self.db_path.parent / "tracevault.db"
+            if legacy_path.exists():
+                self.db_path = legacy_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.init_schema()
+
+    @staticmethod
+    def resolve_file_path(path_str: str | None) -> Path | None:
+        """Resolve an artifact file path safely across renames and working directories."""
+        if not path_str:
+            return None
+        p = Path(path_str)
+        if p.is_file():
+            return p
+        project_root = Path(__file__).resolve().parent.parent
+        candidate = project_root / path_str
+        if candidate.is_file():
+            return candidate
+        vault_cand = project_root / "data" / "vault_storage" / p.name
+        if vault_cand.is_file():
+            return vault_cand
+        sample_cand = project_root / "data" / "sample_evidence" / p.name
+        if sample_cand.is_file():
+            return sample_cand
+        return None
 
     @contextmanager
     def get_connection(self) -> Generator[sqlite3.Connection, None, None]:
@@ -222,7 +246,32 @@ class DatabaseManager:
             row = cursor.execute("SELECT * FROM cases WHERE case_id = ?;", (case_id,)).fetchone()
             return dict(row) if row else None
 
-    # --- Evidence Helpers ---
+    # --- Artifact / Exhibit Helpers ---
+
+    def generate_artifact_id(self) -> str:
+        """Generate next sequential artifact identifier, e.g. ART-2026-0006."""
+        now_year = datetime.now(timezone.utc).year
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT evidence_id FROM evidence WHERE evidence_id LIKE ? ORDER BY evidence_id DESC LIMIT 1", (f"ART-{now_year}-%",))
+            row = cursor.fetchone()
+            if row and row[0]:
+                try:
+                    num = int(row[0].split("-")[-1]) + 1
+                    return f"ART-{now_year}-{num:04d}"
+                except Exception:
+                    pass
+            cursor.execute("SELECT evidence_id FROM evidence ORDER BY evidence_id DESC LIMIT 1")
+            row = cursor.fetchone()
+            if row and row[0]:
+                try:
+                    num = int(row[0].split("-")[-1]) + 1
+                    return f"ART-{now_year}-{num:04d}"
+                except Exception:
+                    pass
+            return f"ART-{now_year}-0001"
+
+    generate_evidence_id = generate_artifact_id
 
     def add_evidence(self, data: Dict[str, Any]) -> None:
         """Insert a newly registered evidence record."""
@@ -248,6 +297,10 @@ class DatabaseManager:
                 json.dumps(data.get("metadata", {})), data.get("created_at", get_iso_now())
             ))
             conn.commit()
+
+    create_evidence = add_evidence
+    create_artifact = add_evidence
+    add_artifact = add_evidence
 
     def get_evidence_list(self, search_query: str = "", category_filter: str = "All",
                           case_filter: str = "All", status_filter: str = "All") -> List[Dict[str, Any]]:
@@ -442,6 +495,28 @@ class DatabaseManager:
             ORDER BY c.check_timestamp DESC;
             """
             rows = cursor.execute(query, (evidence_id,)).fetchall()
+            return [dict(r) for r in rows]
+
+    def record_integrity_check(self, data: Dict[str, Any]) -> None:
+        """Convenience helper for recording an integrity verification test."""
+        if "check_id" not in data:
+            data["check_id"] = f"CHK-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')[:17]}"
+        if "check_timestamp" not in data:
+            data["check_timestamp"] = get_iso_now()
+        self.add_integrity_check(data)
+
+    def get_recent_integrity_checks(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Retrieve recent integrity check records across all artifacts."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            query = """
+            SELECT c.*, u.full_name as checked_by_name, u.role as checked_by_role
+            FROM integrity_checks c
+            JOIN users u ON c.checked_by_id = u.user_id
+            ORDER BY c.check_timestamp DESC
+            LIMIT ?;
+            """
+            rows = cursor.execute(query, (limit,)).fetchall()
             return [dict(r) for r in rows]
 
     # --- Audit Log Chaining Helpers ---

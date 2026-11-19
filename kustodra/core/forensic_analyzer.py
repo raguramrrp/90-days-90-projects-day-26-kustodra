@@ -90,42 +90,78 @@ class ForensicAnalyzer:
         }
 
     @staticmethod
-    def interpret_entropy(entropy: float) -> Dict[str, str]:
+    def interpret_entropy(entropy: float, mime_type: str = "") -> Dict[str, str]:
         """
         Translate Shannon Entropy value into a forensic interpretation.
         Entropy scale: 0.0 to 8.0 bits per byte.
         """
         if entropy < 1.0:
-            return {
-                "level": "Near Zero (Extremely Low)",
-                "assessment": "Repetitive or null-byte padded data; negligible information density.",
-                "security_note": "Possible sparse file, memory wipe artifact, or zero-filled buffer."
-            }
+            level = "Near Zero (Extremely Low)"
+            assessment = "Repetitive or null-byte padded data; negligible information density."
+            note = "Possible sparse file, memory wipe artifact, or zero-filled buffer."
         elif entropy < 4.5:
-            return {
-                "level": "Low (Plain Text / Uncompressed Code)",
-                "assessment": "Consistent with natural language, source code, ASCII logs, or structured text.",
-                "security_note": "High predictability; contents are readily readable and inspectable."
-            }
+            level = "Low (Plain Text / Uncompressed Code)"
+            assessment = "Consistent with natural language, source code, ASCII logs, or structured text."
+            note = "High predictability; contents are readily readable and inspectable."
         elif entropy < 7.2:
-            return {
-                "level": "Moderate (Structured Binary / Media)",
-                "assessment": "Typical of compiled binaries, structured databases, or loosely compressed media.",
-                "security_note": "Normal operational range for standard multimedia and application data."
-            }
+            level = "Moderate (Structured Binary / Media)"
+            assessment = "Typical of compiled binaries, structured databases, or loosely compressed media."
+            note = "Normal operational range for standard multimedia and application data."
         else:
-            return {
-                "level": "High (Cryptographic / Compressed / Packed)",
-                "assessment": "Consistent with AES/RSA ciphertext, high-ratio compression, or packed malware.",
-                "security_note": "Near-uniform byte distribution; content cannot be visually parsed without decryption keys."
-            }
+            level = "High (Cryptographic / Compressed / Packed)"
+            assessment = "Consistent with AES/RSA ciphertext, high-ratio compression, or packed malware."
+            note = "Near-uniform byte distribution; content cannot be visually parsed without decryption keys."
+
+        return {
+            "level": level,
+            "type": level,
+            "assessment": assessment,
+            "implication": assessment,
+            "security_note": note,
+        }
 
     @classmethod
-    def evaluate_risk(cls, is_spoofed: bool, entropy: float, integrity_status: str,
-                      has_duplicates: bool) -> Dict[str, Any]:
+    def evaluate_risk(cls, *args, **kwargs) -> Dict[str, Any]:
         """
         Calculate an explainable Forensic Integrity Risk score (0 - 100) and indicators.
+        Supports both positional arguments:
+          evaluate_risk(is_spoofed, entropy, integrity_status, has_duplicates)
+        or dictionary object:
+          evaluate_risk(evidence_dict, duplicates_list=[])
         """
+        is_spoofed = False
+        entropy = 0.0
+        integrity_status = "Verified"
+        has_duplicates = False
+
+        if args and isinstance(args[0], dict):
+            ev = args[0]
+            duplicates = args[1] if len(args) > 1 else kwargs.get("duplicates", [])
+            entropy = float(ev.get("shannon_entropy", 0.0))
+            integrity_status = str(ev.get("integrity_status", "Verified"))
+            has_duplicates = bool(duplicates)
+            is_spoofed = bool(ev.get("is_spoofed", False))
+        else:
+            if len(args) >= 1:
+                is_spoofed = bool(args[0])
+            else:
+                is_spoofed = bool(kwargs.get("is_spoofed", False))
+
+            if len(args) >= 2:
+                entropy = float(args[1])
+            else:
+                entropy = float(kwargs.get("entropy", 0.0))
+
+            if len(args) >= 3:
+                integrity_status = str(args[2])
+            else:
+                integrity_status = str(kwargs.get("integrity_status", "Verified"))
+
+            if len(args) >= 4:
+                has_duplicates = bool(args[3])
+            else:
+                has_duplicates = bool(kwargs.get("has_duplicates", False))
+
         score = 0
         indicators: List[str] = []
 

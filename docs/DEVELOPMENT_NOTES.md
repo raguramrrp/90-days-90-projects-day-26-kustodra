@@ -1,15 +1,15 @@
-# TRACEVAULT - Development Notes
+# KUSTODRA - Development Notes
 
 ## Design & Engineering Decisions
 
 ### 1. Memory-Bounded Cryptographic Streaming
-Forensic disk images and video files can reach gigabytes in size. Loading entire files into memory can cause Out-Of-Memory (OOM) crashes. `CryptoEngine.calculate_hashes_from_stream` uses a 64KB chunk buffer to compute SHA-256, MD5, and SHA-1 in a single streaming pass.
+Forensic disk images and binary files can reach gigabytes in size. Loading entire files into memory can cause Out-Of-Memory (OOM) crashes. `CryptoEngine.calculate_hashes_from_stream` uses a 64KB chunk buffer to compute SHA-256, MD5, and SHA-1 in a single streaming pass.
 
 ### 2. Constant-Time Hash Comparison
-Standard string equality (`==`) terminates early on the first differing character, creating a potential timing side-channel attack. We enforce `hmac.compare_digest()` for constant-time comparisons.
+Standard string equality (`==`) terminates early on the first differing character, creating a potential timing side-channel vulnerability. We enforce `hmac.compare_digest()` for constant-time comparisons.
 
 ### 3. Shannon Entropy Calculation
-Entropy ($H = -\sum p_i \log_2 p_i$) measures bit randomness on a 0.0 to 8.0 scale. Plain ASCII logs typically show $H \approx 3.5 - 4.5$, while encrypted archives or packed malware exhibit $H > 7.6$. This gives examiners immediate visibility into file structure without executing code.
+Entropy ($H = -\sum p_i \log_2 p_i$) measures bit randomness on a 0.0 to 8.0 scale. Plain ASCII logs typically show $H \approx 3.5 - 4.5$, while encrypted archives or packed payloads exhibit $H > 7.6$. This gives examiners immediate visibility into file structure without executing code.
 
 ### 4. Cryptographically Chained Audit Ledger
 To protect against insider threat or SQL tampering, each audit entry records:

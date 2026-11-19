@@ -81,6 +81,19 @@ class CryptoEngine:
             return False
         return hmac.compare_digest(expected_hash.strip().lower(), calculated_hash.strip().lower())
 
+    @classmethod
+    def verify_sha256_constant_time(cls, data: Union[bytes, BinaryIO], expected_hash: str) -> bool:
+        """
+        Compute SHA-256 for bytes or stream and perform constant-time comparison against expected hash.
+        """
+        if not expected_hash:
+            return False
+        if isinstance(data, bytes):
+            calc = hashlib.sha256(data).hexdigest().lower()
+        else:
+            calc = cls.calculate_hashes_from_stream(data)["sha256"]
+        return cls.verify_hash(expected_hash, calc)
+
     @staticmethod
     def calculate_shannon_entropy(data_or_stream: Union[bytes, BinaryIO, str, Path]) -> float:
         """

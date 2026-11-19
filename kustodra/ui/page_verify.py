@@ -1,8 +1,8 @@
 """
-TRACEVAULT - Integrity Laboratory Page
+KUSTODRA - Integrity Laboratory Page
 Dedicated cryptographic verification workspace:
-- Select registered evidence
-- Select verification source (Vault baseline, Upload, Authentic Sample, Tampered Sample)
+- Select cataloged artifact
+- Select verification source (Vault baseline, Upload, Benchmark Specimens)
 - Calculate SHA-256 and constant-time comparison
 - Side-by-side comparison panel (Registered vs Calculated)
 - Highlight diffs on mismatch
@@ -15,20 +15,24 @@ from datetime import datetime, timezone
 import streamlit as st
 import pandas as pd
 
-from tracevault.database import DatabaseManager, get_iso_now
-from tracevault.core.crypto_engine import CryptoEngine
-from tracevault.core.audit_engine import AuditEngine
-from tracevault.ui.components import render_hash_view, get_status_badge_html
+from kustodra.database import DatabaseManager, get_iso_now
+from kustodra.core.crypto_engine import CryptoEngine
+from kustodra.core.audit_engine import AuditEngine
+from kustodra.ui.components import render_header, render_hash_view, get_status_badge_html
 
 
 def render_page(db: DatabaseManager, current_user: dict, samples_dir: Path) -> None:
     """Render the Integrity Laboratory workspace."""
-    st.markdown("### Integrity Laboratory")
-    st.caption("Compare cryptographic fingerprints to identify changes in digital evidence.")
+    render_header(
+        title="Integrity Lab",
+        current_user=current_user,
+        show_import=False,
+        breadcrumb="CRYPTOGRAPHIC VERIFICATION"
+    )
 
     all_evidence = db.get_evidence_list()
     if not all_evidence:
-        st.info("No evidence registered yet. Register an item first to perform verification.")
+        st.info("No artifacts cataloged yet. Ingest an item first to perform verification.")
         return
 
     selected_id = st.session_state.get("selected_evidence_id", all_evidence[0]["evidence_id"])
@@ -36,13 +40,13 @@ def render_page(db: DatabaseManager, current_user: dict, samples_dir: Path) -> N
     if selected_id not in evidence_options:
         selected_id = evidence_options[0]
 
-    # 1. Evidence Selection
+    # 1. Artifact Selection
     with st.container(border=True):
-        st.markdown("#### 1. Target Evidence Reference")
+        st.markdown("#### 1. Target Artifact Reference")
         col_s1, col_s2 = st.columns([3, 2])
         with col_s1:
             chosen_id = st.selectbox(
-                "Select Registered Evidence Item",
+                "Select Cataloged Artifact Item",
                 options=evidence_options,
                 index=evidence_options.index(selected_id),
                 format_func=lambda x: f"{x} — {[e['title'] for e in all_evidence if e['evidence_id'] == x][0]} ({[e['original_filename'] for e in all_evidence if e['evidence_id'] == x][0]})"
@@ -59,34 +63,33 @@ def render_page(db: DatabaseManager, current_user: dict, samples_dir: Path) -> N
 
     # 2. Comparison Source Selection
     with st.container(border=True):
-        st.markdown("#### 2. Comparison Bitstream Source")
-        st.caption("Select the file instance to test against the registered immutable reference.")
+        st.markdown("#### 2. Comparison Source")
 
-        verif_mode = st.radio(
+        verif_mode = st.segmented_control(
             "Source Mode",
             options=[
-                "Vault Stored Master Copy (Verify local vault archive against bit-rot or tampering)",
-                "External Upload File (Verify thumb drive, suspect device, or opposing copy)",
-                "Forensic Sample Test Suite (Test clean vs altered forensic artifacts)"
+                "Vault Stored Copy",
+                "Upload External Copy",
+                "Validation Benchmark Suite"
             ],
-            index=0
+            default="Vault Stored Copy",
+            label_visibility="collapsed"
         )
 
         file_bytes_to_verify: bytes | None = None
         source_label = ""
 
-        if "Vault Stored Master Copy" in verif_mode:
-            storage_path_str = ev.get("storage_path") or ev.get("storage_rel_path")
-            vault_path = Path(storage_path_str) if storage_path_str else None
+        if verif_mode == "Vault Stored Copy" or "Vault Stored" in (verif_mode or ""):
+            storage_path_str = ev.get("storage_rel_path") or ev.get("storage_path")
+            vault_path = DatabaseManager.resolve_file_path(storage_path_str)
             if vault_path and vault_path.is_file():
                 source_label = f"Vault Archive: {vault_path.name}"
-                st.caption(f"Located secure vault copy: `{vault_path.name}` ({vault_path.stat().st_size:,} Bytes)")
-                with open(vault_path, "rb") as f:
-                    file_bytes_to_verify = f.read()
+                st.caption(f"✓ Secure vault copy verified: `{vault_path.name}` ({vault_path.stat().st_size:,} Bytes)")
+                file_bytes_to_verify = vault_path.read_bytes()
             else:
                 st.error("Vault archive file not accessible at registered storage path.")
 
-        elif "External Upload File" in verif_mode:
+        elif verif_mode == "Upload External Copy" or "Upload" in (verif_mode or ""):
             uploaded_verify = st.file_uploader(
                 "Upload file instance for cryptographic verification",
                 type=None,
@@ -97,8 +100,7 @@ def render_page(db: DatabaseManager, current_user: dict, samples_dir: Path) -> N
                 file_bytes_to_verify = uploaded_verify.getvalue()
                 st.caption(f"Loaded instance: `{uploaded_verify.name}` ({len(file_bytes_to_verify):,} Bytes)")
 
-        elif "Forensic Sample Test Suite" in verif_mode:
-            st.caption("Load demonstration sample to test mathematical Match or Mismatch states:")
+        elif verif_mode == "Validation Benchmark Suite" or "Benchmark" in (verif_mode or ""):
             col_d1, col_d2 = st.columns(2)
             with col_d1:
                 if st.button("Load Authentic Sample (server_access_log.log)", use_container_width=True):
@@ -122,7 +124,6 @@ def render_page(db: DatabaseManager, current_user: dict, samples_dir: Path) -> N
     if file_bytes_to_verify is not None:
         with st.container(border=True):
             st.markdown("#### 3. Cryptographic Fingerprint Comparison")
-            st.caption("Side-by-side comparison of registered baseline digest versus calculated digest.")
 
             calc_hashes = CryptoEngine.calculate_hashes_from_bytes(file_bytes_to_verify)
             calc_sha256 = calc_hashes["sha256"]
@@ -204,7 +205,6 @@ def render_page(db: DatabaseManager, current_user: dict, samples_dir: Path) -> N
     # 4. Historical Verification Ledger
     with st.container(border=True):
         st.markdown("#### 4. Historical Verification Ledger")
-        st.caption("Permanent record of all previous integrity tests executed on this evidence item.")
 
         checks = db.get_integrity_checks_for_evidence(chosen_id)
         if checks:
@@ -222,4 +222,4 @@ def render_page(db: DatabaseManager, current_user: dict, samples_dir: Path) -> N
             df_hist = pd.DataFrame(check_table)
             st.dataframe(df_hist, use_container_width=True, hide_index=True)
         else:
-            st.info("No prior verification records for this evidence item.")
+            st.info("No prior verification records for this artifact.")

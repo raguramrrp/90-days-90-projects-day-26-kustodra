@@ -1,6 +1,6 @@
 """
-TRACEVAULT - Forensic Workstation UI Components
-Provides standard headers, metric formatters, status badges, and cryptographic fingerprint inspectors.
+KUSTODRA - UI Components
+Provides top header, status badge formatters, format icons, and cryptographic inspectors.
 """
 
 from __future__ import annotations
@@ -8,26 +8,28 @@ import streamlit as st
 from typing import Optional
 
 
-def render_header(current_user: dict) -> None:
-    """Render the compact, professional forensic workbench header."""
-    user_name = current_user.get("full_name", "Forensic Examiner")
-    user_role = current_user.get("role", "Examiner")
-    user_org = current_user.get("organization", "Digital Forensics Unit")
-
-    st.markdown(f"""
-    <div class="tv-app-header">
-        <div>
-            <div class="tv-app-title">TRACEVAULT</div>
-            <div class="tv-app-descriptor">DIGITAL FORENSICS &bull; EVIDENCE MANAGEMENT</div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 16px;">
-            <div>
-                <div class="tv-user-tag">{user_name}</div>
-                <div class="tv-user-role">{user_role} &bull; {user_org}</div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+def render_header(title: str, current_user: dict, show_import: bool = True, breadcrumb: str = "") -> None:
+    """
+    Render clean minimal horizontal page header.
+    Left: Clean Page Title
+    Right: "+ Ingest Artifact" action when applicable
+    """
+    if show_import:
+        col_left, col_right = st.columns([5, 1.3])
+        with col_left:
+            st.markdown(
+                f'<div style="font-size: 22px; font-weight: 700; color: #252B2A; letter-spacing: -0.3px; margin-bottom: 8px;">{title}</div>',
+                unsafe_allow_html=True
+            )
+        with col_right:
+            if st.button("+ Ingest Artifact", type="primary", use_container_width=True, key=f"btn_hdr_import_{title}"):
+                st.session_state["active_nav"] = "Intake & Ingestion"
+                st.rerun()
+    else:
+        st.markdown(
+            f'<div style="font-size: 22px; font-weight: 700; color: #252B2A; letter-spacing: -0.3px; margin-bottom: 8px;">{title}</div>',
+            unsafe_allow_html=True
+        )
 
 
 def get_type_tag(category: str) -> str:
@@ -51,30 +53,40 @@ def get_type_tag(category: str) -> str:
         return "BINARY"
 
 
+def get_format_icon(category: str) -> str:
+    """Get clean icon representation for file format."""
+    tag = get_type_tag(category)
+    icons = {
+        "IMAGE": "📷",
+        "DOCUMENT": "📄",
+        "VIDEO": "🎬",
+        "AUDIO": "🎙️",
+        "LOG": "📋",
+        "ARCHIVE": "🗜️",
+        "DISK IMAGE": "💾",
+        "BINARY": "🔒"
+    }
+    return icons.get(tag, "📁")
+
+
 def get_status_badge_html(status: str) -> str:
     """Format status as a clean HTML badge."""
     status_lower = (status or "").lower()
     if "verified" in status_lower and "not" not in status_lower and "fail" not in status_lower:
-        return f'<span class="tv-badge-verified">&#x2713; {status}</span>'
+        return f'<span class="ks-badge-verified">&#x2713; {status}</span>'
     elif "not yet" in status_lower or "pending" in status_lower:
-        return f'<span class="tv-badge-pending">&#x25CB; {status}</span>'
+        return f'<span class="ks-badge-pending">&#x25CB; {status}</span>'
     elif "mismatch" in status_lower:
-        return f'<span class="tv-badge-mismatch">&#x26A0; {status}</span>'
+        return f'<span class="ks-badge-mismatch">&#x26A0; {status}</span>'
     else:
-        return f'<span class="tv-badge-mismatch">&#x2715; {status}</span>'
+        return f'<span class="ks-badge-mismatch">&#x2715; {status}</span>'
 
 
 def render_summary_metrics(total: int, verified: int, pending: int, mismatch: int) -> None:
-    """
-    Render the 4 primary summary metrics per specification:
-    - Registered Evidence
-    - Verified Integrity
-    - Pending Verification
-    - Integrity Discrepancies
-    """
+    """Render the 4 primary summary metrics in restrained cards."""
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("Registered Evidence", total)
+        st.metric("Cataloged Artifacts", total)
     with col2:
         st.metric("Verified Integrity", verified)
     with col3:

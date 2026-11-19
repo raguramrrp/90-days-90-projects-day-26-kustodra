@@ -1,4 +1,4 @@
-# TRACEVAULT - Troubleshooting & FAQs
+# KUSTODRA - Troubleshooting & FAQs
 
 ## Common Issues & Solutions
 
@@ -14,12 +14,12 @@
 **Solution:** A default configuration is provided in `.streamlit/config.toml` with `gatherUsageStats = false`. Running `setup.bat` initializes the configuration automatically.
 
 ### 3. Verification reports "Integrity Mismatch"
-**Explanation:** This is an intentional security alert. It means the file being verified does not match the original SHA-256 hash recorded at registration.
+**Explanation:** This is an intentional security alert. It means the file being verified does not match the original SHA-256 hash recorded at intake.
 - Verify whether the file was opened and re-saved in an editor (which alters line endings or metadata).
 - If demonstrating the mismatch alert, this confirms the system detects tampered bitstreams.
 
-### 4. Database reset needed
-**Solution:** Go to **System Settings** in the application and click **Reset & Re-seed Forensic Database**, or run:
+### 4. Database baseline reset needed
+**Solution:** Go to **System Configuration** in the application and click **Restore System Baseline**, or run:
 ```cmd
 .\.venv\Scripts\python scripts\seed_demo_data.py
 ```

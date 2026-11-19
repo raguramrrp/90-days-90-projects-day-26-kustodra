@@ -1,16 +1,16 @@
 """
-Unit tests for TRACEVAULT Cryptographic Forensics Engine.
+Unit tests for KUSTODRA Cryptographic Forensics Engine.
 """
 
 import hashlib
 import io
 import pytest
-from tracevault.core.crypto_engine import CryptoEngine
+from kustodra.core.crypto_engine import CryptoEngine
 
 
 def test_hash_calculation_known_vectors():
     """Verify SHA-256, MD5, and SHA-1 against known string vectors."""
-    data = b"TRACEVAULT_FORENSIC_INTEGRITY_TEST_2026"
+    data = b"KUSTODRA_FORENSIC_INTEGRITY_TEST_2026"
     expected_sha256 = hashlib.sha256(data).hexdigest().lower()
     expected_md5 = hashlib.md5(data).hexdigest().lower()
     expected_sha1 = hashlib.sha1(data).hexdigest().lower()
@@ -38,6 +38,15 @@ def test_constant_time_verification():
     assert CryptoEngine.verify_hash(h1, h2) is True
     assert CryptoEngine.verify_hash(h1, h3) is False
     assert CryptoEngine.verify_hash("", h1) is False
+
+
+def test_verify_sha256_constant_time():
+    """Verify verify_sha256_constant_time with bytes and streams."""
+    data = b"cryptographic forensic payload 2026"
+    h = hashlib.sha256(data).hexdigest()
+    assert CryptoEngine.verify_sha256_constant_time(data, h) is True
+    assert CryptoEngine.verify_sha256_constant_time(data, "badhash") is False
+    assert CryptoEngine.verify_sha256_constant_time(data, "") is False
 
 
 def test_shannon_entropy():

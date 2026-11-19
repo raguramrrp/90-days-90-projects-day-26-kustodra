@@ -1,6 +1,6 @@
 """
-TRACEVAULT - Chain of Custody Page
-Forensic ledger tracking possession and transfer history of digital evidence.
+KUSTODRA - Chain of Custody Page
+Forensic ledger tracking possession and transfer history of digital artifacts.
 Provides chronological ledger timeline, cryptographic handover receipts, and custody transfer authorization.
 """
 
@@ -8,19 +8,23 @@ from __future__ import annotations
 import streamlit as st
 import pandas as pd
 
-from tracevault.database import DatabaseManager
-from tracevault.core.custody_manager import CustodyManager
-from tracevault.ui.components import get_status_badge_html
+from kustodra.database import DatabaseManager
+from kustodra.core.custody_manager import CustodyManager
+from kustodra.ui.components import render_header, get_status_badge_html
 
 
 def render_page(db: DatabaseManager, current_user: dict) -> None:
     """Render the Chain of Custody ledger and transfer workflow."""
-    st.markdown("### Chain of Custody")
-    st.caption("Review the documented possession and transfer history of digital evidence.")
+    render_header(
+        title="Chain of Custody",
+        current_user=current_user,
+        show_import=False,
+        breadcrumb="CUSTODY LEDGER"
+    )
 
     all_evidence = db.get_evidence_list()
     if not all_evidence:
-        st.info("No evidence registered yet.")
+        st.info("No artifacts cataloged yet.")
         return
 
     selected_id = st.session_state.get("selected_evidence_id")
@@ -29,7 +33,7 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
         selected_id = evidence_options[0]
 
     chosen_id = st.selectbox(
-        "Select Evidence Record",
+        "Select Artifact Record",
         options=evidence_options,
         index=evidence_options.index(selected_id) if selected_id in evidence_options else 0,
         format_func=lambda x: f"{x} — {[e['title'] for e in all_evidence if e['evidence_id'] == x][0]}"
@@ -48,12 +52,12 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
         with col_c1:
             st.caption("CURRENT ACTIVE CUSTODIAN")
             custodian_name = ev.get("custodian_name") or ev.get("current_custodian_id", "Unknown")
-            custodian_role = ev.get("custodian_role", "Evidence Custodian")
+            custodian_role = ev.get("custodian_role", "Vault Custodian")
             st.markdown(f"**{custodian_name}**")
-            st.caption(f"Role: {custodian_role} &bull; Org: {ev.get('custodian_org', 'Evidence Management Unit')}")
+            st.caption(f"Role: {custodian_role} &bull; Org: {ev.get('custodian_org', 'Digital Asset Depository')}")
 
         with col_c2:
-            st.caption("EVIDENCE IDENTIFIER")
+            st.caption("ARTIFACT IDENTIFIER")
             st.markdown(f"**{ev['evidence_id']}** &mdash; {ev['title']}")
             st.caption(f"Original file: `{ev['original_filename']}` ({ev['file_size_bytes']:,} Bytes)")
 
@@ -67,7 +71,6 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
     with col_tl:
         with st.container(border=True):
             st.markdown("#### Chronological Custody Ledger")
-            st.caption("Documented historical sequence of releases, receipts, and custody handovers.")
 
             # Seizure / Intake Initial Entry
             with st.container(border=True):
@@ -99,13 +102,12 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
 
                         st.caption(f"Cryptographic Receipt Token: `{token_snip}`")
             else:
-                st.info("No transfers recorded. Evidence remains with initial collecting custodian.")
+                st.info("No transfers recorded. Artifact remains with initial collecting custodian.")
 
     # 3. Transfer Custody Action Panel (Right Column)
     with col_trans:
         with st.container(border=True):
             st.markdown("#### Record Custody Transfer")
-            st.caption("Document and authorize legal evidence release to another registered custodian.")
 
             users = db.get_users()
             user_options = {u["user_id"]: f"{u['full_name']} ({u['role']})" for u in users}

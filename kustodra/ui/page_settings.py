@@ -1,5 +1,5 @@
 """
-TRACEVAULT - Settings & Audit Verification Page
+KUSTODRA - System Configuration Page
 Workstation configuration, cryptographic audit ledger verification, and active examiner profiles.
 """
 
@@ -7,20 +7,24 @@ from __future__ import annotations
 import streamlit as st
 from pathlib import Path
 
-from tracevault.database import DatabaseManager
-from tracevault.core.audit_engine import AuditEngine
+from kustodra.database import DatabaseManager
+from kustodra.core.audit_engine import AuditEngine
+from kustodra.ui.components import render_header
 from scripts.seed_demo_data import seed_database
 
 
 def render_page(db: DatabaseManager, current_user: dict, db_path: Path) -> None:
-    """Render Settings and Audit Verification Tools."""
-    st.markdown("### Settings")
-    st.caption("Workstation configuration, cryptographic audit chain verification, and operating identity.")
+    """Render System Configuration and Audit Verification Tools."""
+    render_header(
+        title="System Configuration",
+        current_user=current_user,
+        show_import=False,
+        breadcrumb="CONFIGURATION & TELEMETRY"
+    )
 
     # 1. Cryptographic Audit Chain Validator
     with st.container(border=True):
         st.markdown("#### Cryptographic Audit Chain Validator")
-        st.caption("Verifies that every activity block in the SQLite ledger is cryptographically linked and untampered.")
 
         audit = AuditEngine(db)
         if st.button("Run Audit Chain Verification", type="primary"):
@@ -47,7 +51,6 @@ def render_page(db: DatabaseManager, current_user: dict, db_path: Path) -> None:
     # 2. Operating Identity Switcher
     with st.container(border=True):
         st.markdown("#### Operating Identity")
-        st.caption("Select the active system identity used for custody transfers, integrity audits, and event signatures.")
 
         users = db.get_users()
         user_dict = {u["user_id"]: u for u in users}
@@ -69,7 +72,6 @@ def render_page(db: DatabaseManager, current_user: dict, db_path: Path) -> None:
     # 3. Workstation Storage Telemetry
     with st.container(border=True):
         st.markdown("#### Storage & Database Telemetry")
-        st.caption("Local database file parameters and repository statistics.")
 
         db_size = db_path.stat().st_size if db_path.is_file() else 0
         metrics = db.get_dashboard_metrics()
@@ -82,9 +84,9 @@ def render_page(db: DatabaseManager, current_user: dict, db_path: Path) -> None:
         with col_t3:
             st.metric("Total Custody Transfers", metrics["total_transfers"])
 
-        with st.expander("Reset Demonstration Data", expanded=False):
-            st.warning("This will reset the local SQLite database to the pristine forensic demonstration dataset.")
-            if st.button("Reset Database", type="secondary"):
+        with st.expander("Restore Baseline System State", expanded=False):
+            st.warning("This will restore the local SQLite database to the verified reference benchmark records.")
+            if st.button("Restore System Baseline", type="secondary"):
                 seed_database()
-                st.success("Database re-seeded successfully.")
+                st.success("System baseline records restored successfully.")
                 st.rerun()

@@ -1,5 +1,5 @@
 """
-TRACEVAULT - Sample Evidence Generator
+KUSTODRA - Sample Evidence Generator
 Creates digital test artifacts across multiple forensic categories.
 """
 

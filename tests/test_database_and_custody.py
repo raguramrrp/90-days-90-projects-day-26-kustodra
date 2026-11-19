@@ -1,19 +1,19 @@
 """
-Unit tests for TRACEVAULT Database and Custody Management.
+Unit tests for KUSTODRA Database and Custody Management.
 """
 
 import tempfile
 from pathlib import Path
 import pytest
-from tracevault.database import DatabaseManager, get_iso_now
-from tracevault.core.custody_manager import CustodyManager
+from kustodra.database import DatabaseManager, get_iso_now
+from kustodra.core.custody_manager import CustodyManager
 
 
 @pytest.fixture
 def test_db():
     """Create an isolated test database in a temporary directory."""
     with tempfile.TemporaryDirectory() as tmp_dir:
-        db_file = Path(tmp_dir) / "test_tracevault.db"
+        db_file = Path(tmp_dir) / "test_kustodra.db"
         manager = DatabaseManager(db_file)
         # Add basic test user and case
         manager.add_user("USR-01", "testuser", "Examiner Alice", "Lead Examiner", "FE-100", "Cyber Unit", "alice@test.org")

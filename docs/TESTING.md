@@ -1,8 +1,8 @@
-# TRACEVAULT - Testing & Quality Assurance
+# KUSTODRA - Testing & Quality Assurance
 
 ## Test Suite Summary
 
-The automated test suite contains 21 unit and end-to-end integration test cases located in `tests/`:
+The automated test suite contains 23 unit and end-to-end integration test cases located in `tests/`:
 
 - `test_crypto_engine.py`:
   - `test_hash_calculation_known_vectors`: Verifies SHA-256, MD5, and SHA-1 against known string vectors.
@@ -35,6 +35,8 @@ The automated test suite contains 21 unit and end-to-end integration test cases 
 
 - `test_report_generator.py`:
   - `test_generate_pdf_certificate`: Verifies ReportLab PDF generation and checks `%PDF-` header.
+  - `test_generate_markdown_report`: Verifies structured Markdown report generation.
+  - `test_report_generator_is_available`: Verifies runtime availability check.
 
 - `test_e2e_forensic_workflow.py`:
   - `test_complete_evidence_forensic_lifecycle`: Full end-to-end test simulating ingest, match, mismatch, custody transfer, audit validation, and PDF export.
@@ -50,4 +52,4 @@ Or directly via Python:
 .\.venv\Scripts\python.exe -m pytest tests -v
 ```
 
-**Status:** PASS (21/21 passed, 0.62 seconds execution time).
+**Status:** PASS (23/23 passed, ~1.1 seconds execution time).

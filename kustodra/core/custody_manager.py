@@ -9,8 +9,8 @@ import uuid
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
 
-from tracevault.database import DatabaseManager, get_iso_now
-from tracevault.core.crypto_engine import CryptoEngine
+from kustodra.database import DatabaseManager, get_iso_now
+from kustodra.core.crypto_engine import CryptoEngine
 
 
 class CustodyManager:

@@ -1,5 +1,5 @@
 """
-TRACEVAULT - Forensic Report Generator
+KUSTODRA - Forensic Report Generator
 Produces court-ready, publication-grade Digital Evidence & Chain-of-Custody
 certificates and audit reports in PDF format using ReportLab.
 """
@@ -32,7 +32,7 @@ except ImportError:
     HRFlowable = None
     KeepTogether = None
 
-from tracevault.database import get_iso_now
+from kustodra.database import get_iso_now
 
 
 class ReportGenerator:
@@ -139,22 +139,22 @@ class ReportGenerator:
 
         # 1. Header Banner
         report_ref = f"REP-{evidence['evidence_id']}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}"
-        story.append(Paragraph("TRACEVAULT &bull; FORENSIC EVIDENCE & CHAIN-OF-CUSTODY CERTIFICATE", title_style))
+        story.append(Paragraph("KUSTODRA &bull; DIGITAL ASSET INTEGRITY & CHAIN-OF-CUSTODY CERTIFICATE", title_style))
         story.append(Paragraph(f"{agency_name} | Document Reference: <b>{report_ref}</b>", subtitle_style))
         story.append(Spacer(1, 8))
         story.append(HRFlowable(width="100%", thickness=1.5, color=primary_accent, spaceAfter=10))
 
-        # 2. General Case & Evidence Identity Table
-        story.append(Paragraph("1. EVIDENCE RECORD & CASE IDENTITY", section_heading))
+        # 2. General Case & Artifact Identity Table
+        story.append(Paragraph("1. ARTIFACT RECORD & CASE IDENTITY", section_heading))
         identity_data = [
             [
-                Paragraph("<b>Evidence ID:</b>", body_style),
+                Paragraph("<b>Artifact ID:</b>", body_style),
                 Paragraph(f"<b>{evidence['evidence_id']}</b>", body_style),
                 Paragraph("<b>Case Reference:</b>", body_style),
                 Paragraph(f"{evidence['case_id']} &mdash; {evidence.get('case_title', 'N/A')}", body_style)
             ],
             [
-                Paragraph("<b>Evidence Title:</b>", body_style),
+                Paragraph("<b>Artifact Title:</b>", body_style),
                 Paragraph(evidence["title"], body_style),
                 Paragraph("<b>Forensic Category:</b>", body_style),
                 Paragraph(evidence["category"], body_style)
@@ -289,7 +289,7 @@ class ReportGenerator:
             "<b>Cryptographic Integrity Scope:</b> A SHA-256 hash proves mathematically whether file contents "
             "match a previously recorded hash; it does not independently prove who created the file or whether "
             "the original evidence was authentic. Integrity is contingent on custody continuity, secure registry "
-            "access, and tamper-evident audit logging. This document was generated automatically by the TRACEVAULT "
+            "access, and tamper-evident audit logging. This document was generated automatically by the KUSTODRA "
             "workstation and reflects state recorded in the immutable database ledger at time of generation."
         )
         story.append(Paragraph(disclaimer_text, disclaimer_style))
@@ -297,7 +297,7 @@ class ReportGenerator:
 
         cert_footer = (
             f"Report Generated: <b>{get_iso_now()} UTC</b> &bull; Examiner: <b>{generated_by_name}</b> &bull; "
-            f"Workstation: TRACEVAULT v1.0 &bull; Page 1 of 1"
+            f"Workstation: KUSTODRA v1.0 &bull; Page 1 of 1"
         )
         story.append(Paragraph(cert_footer, subtitle_style))
 
@@ -319,14 +319,14 @@ class ReportGenerator:
         report_ref = f"REP-{evidence['evidence_id']}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}"
 
         lines = [
-            f"# TRACEVAULT — Evidence Custody & Integrity Report",
+            f"# KUSTODRA — Artifact Custody & Integrity Report",
             f"**Agency / Organization:** {agency_name}",
             f"**Report Reference:** `{report_ref}` | **Generated:** {now_str} UTC | **Examiner:** {generated_by_name}",
             "",
             "---",
             "",
-            "## 1. Evidence Record & Case Identity",
-            f"- **Evidence ID:** `{evidence['evidence_id']}`",
+            "## 1. Artifact Record & Case Identity",
+            f"- **Artifact ID:** `{evidence['evidence_id']}`",
             f"- **Case Reference:** {evidence['case_id']} — {evidence.get('case_title', 'N/A')}",
             f"- **Title / Label:** {evidence['title']}",
             f"- **Category:** {evidence['category']}",
@@ -383,7 +383,7 @@ class ReportGenerator:
             "## 5. Forensic Notice & Disclaimer",
             "> **Cryptographic Integrity Scope:** A SHA-256 hash proves mathematically whether file contents match a previously recorded hash; it does not independently prove who created the file or whether the original evidence was authentic. Integrity is contingent on custody continuity, secure registry access, and tamper-evident audit logging.",
             "",
-            f"_Report compiled by TRACEVAULT v1.0 on {now_str} UTC._"
+            f"_Report compiled by KUSTODRA v1.0 on {now_str} UTC._"
         ])
 
         return "\n".join(lines)

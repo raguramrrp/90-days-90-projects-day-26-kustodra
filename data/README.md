@@ -1,6 +1,6 @@
 # Data Directory Guide
 
-This folder contains storage directories and forensic artifacts used by TRACEVAULT.
+This folder contains storage directories and benchmark records used by KUSTODRA.
 
 ## Subdirectories
 
@@ -11,8 +11,8 @@ This folder contains storage directories and forensic artifacts used by TRACEVAU
   - `financial_audit_ledger.csv`: Structured tabular transaction log.
   - `confidential_asset_agreement.txt`: Text document for text metadata inspection.
   - `suspect_encrypted_payload.bin`: High-entropy pseudo-random binary block for encryption analysis.
-  - `TRACEVAULT_SAMPLE_CERTIFICATE.pdf`: Compiled ReportLab PDF certificate sample.
+  - `KUSTODRA_SAMPLE_CERTIFICATE.pdf`: Compiled ReportLab PDF certificate sample.
 
-- `vault_storage/`: Local repository storing bitstream copies of registered evidence with immutable filenames (`<EVIDENCE_ID>_<ORIGINAL_NAME>`).
+- `vault_storage/`: Local repository storing bitstream copies of registered artifacts with immutable filenames (`<ARTIFACT_ID>_<ORIGINAL_NAME>`).
 
-- `tracevault.db`: SQLite database file operating in WAL (Write-Ahead Logging) mode.
+- `kustodra.db`: SQLite database file operating in WAL (Write-Ahead Logging) mode.

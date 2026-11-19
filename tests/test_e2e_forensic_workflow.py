@@ -7,13 +7,13 @@ import tempfile
 from pathlib import Path
 import pytest
 
-from tracevault.database import DatabaseManager, get_iso_now
-from tracevault.core.crypto_engine import CryptoEngine
-from tracevault.core.metadata_inspector import MetadataInspector
-from tracevault.core.forensic_analyzer import ForensicAnalyzer
-from tracevault.core.custody_manager import CustodyManager
-from tracevault.core.audit_engine import AuditEngine
-from tracevault.core.report_generator import ReportGenerator
+from kustodra.database import DatabaseManager, get_iso_now
+from kustodra.core.crypto_engine import CryptoEngine
+from kustodra.core.metadata_inspector import MetadataInspector
+from kustodra.core.forensic_analyzer import ForensicAnalyzer
+from kustodra.core.custody_manager import CustodyManager
+from kustodra.core.audit_engine import AuditEngine
+from kustodra.core.report_generator import ReportGenerator
 
 
 def test_complete_evidence_forensic_lifecycle():

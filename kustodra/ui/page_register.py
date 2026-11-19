@@ -1,40 +1,41 @@
 """
-TRACEVAULT - Evidence Intake Page
-Controlled forensic intake process:
-- Section A: File Acquisition & Magic Signature Inspection
-- Section B: Evidence Description & Case Context
-- Section C: Cryptographic Fingerprint Panel (SHA-256, MD5, SHA-1, Entropy)
-- Section D: Review & Intake Registration
+KUSTODRA - Intake & Ingestion Page
+Controlled artifact intake workflow:
+- File Acquisition & Magic Header Inspection
+- Artifact Metadata & Case Context
+- Live Cryptographic Fingerprinting (SHA-256, MD5, SHA-1, Shannon Entropy)
+- Review & Seal into KUSTODRA Vault
 """
 
 from __future__ import annotations
-import uuid
 from pathlib import Path
 from datetime import datetime, timezone
 import streamlit as st
 
-from tracevault.database import DatabaseManager, get_iso_now
-from tracevault.core.crypto_engine import CryptoEngine
-from tracevault.core.metadata_inspector import MetadataInspector
-from tracevault.core.forensic_analyzer import ForensicAnalyzer
-from tracevault.core.audit_engine import AuditEngine
-from tracevault.ui.components import render_hash_view
+from kustodra.database import DatabaseManager, get_iso_now
+from kustodra.core.crypto_engine import CryptoEngine
+from kustodra.core.metadata_inspector import MetadataInspector
+from kustodra.core.forensic_analyzer import ForensicAnalyzer
+from kustodra.core.audit_engine import AuditEngine
+from kustodra.ui.components import render_header, render_hash_view
 
 
 def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> None:
-    """Render the controlled Evidence Intake sequence."""
-    st.markdown("### Evidence Intake")
-    st.caption("Register a digital artifact and establish its initial integrity reference.")
+    """Render the controlled Artifact Intake sequence."""
+    render_header(
+        title="Intake & Ingestion",
+        current_user=current_user,
+        show_import=False,
+        breadcrumb="INGESTION & HASHING"
+    )
 
     # Section A — File Acquisition
     with st.container(border=True):
-        st.markdown("#### Section A — File Acquisition")
-        st.caption("Acquire the digital artifact into secure memory. Cryptographic hashing and file signature detection execute automatically.")
+        st.markdown("#### 1. Artifact Acquisition")
 
         uploaded_file = st.file_uploader(
-            "Acquire Evidence File",
+            "Acquire Digital Artifact",
             type=None,
-            help="Acquire any digital evidence format (logs, images, videos, documents, or raw binaries).",
             label_visibility="collapsed"
         )
 
@@ -77,10 +78,9 @@ def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> Non
         if duplicates:
             st.warning(f"⚠️ Duplicate Hash Detected: Identical bitstream already exists in Case {duplicates[0]['case_id']} as Record {duplicates[0]['evidence_id']}.")
 
-    # Section B — Evidence Description
+    # Section B — Artifact Context
     with st.container(border=True):
-        st.markdown("#### Section B — Evidence Description")
-        st.caption("Provide provenance, collection details, and case reference.")
+        st.markdown("#### 2. Artifact Context & Case Reference")
 
         cases = db.get_cases()
         case_options = {c["case_id"]: f"{c['case_id']} — {c['case_title']}" for c in cases}
@@ -94,7 +94,7 @@ def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> Non
                 format_func=lambda cid: case_options.get(cid, cid)
             )
             evidence_title = st.text_input(
-                "Evidence Title *",
+                "Artifact Title *",
                 value=Path(uploaded_file.name).stem.replace("_", " ").title()
             )
             category_options = [
@@ -110,7 +110,7 @@ def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> Non
             ]
             default_cat = classification["category"] if classification["category"] in category_options else category_options[0]
             evidence_category = st.selectbox(
-                "Evidence Category *",
+                "Artifact Category *",
                 options=category_options,
                 index=category_options.index(default_cat)
             )
@@ -121,16 +121,15 @@ def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> Non
             collection_location = st.text_input("Collection Location / Device", placeholder="E.g. Primary Server Rack 3 / Suspect Workstation")
 
         description = st.text_area(
-            "Evidence Description",
+            "Artifact Description",
             placeholder="Detailed description of artifact context, chain of seizure, or initial observations...",
             height=70
         )
         notes = st.text_input("Operational Notes", placeholder="E.g. Write-blocker used during acquisition")
 
-    # Section C — Cryptographic Fingerprint
+    # Section C — Cryptographic Fingerprint & Vault Sealing
     with st.container(border=True):
-        st.markdown("#### Section C — Cryptographic Fingerprint")
-        st.caption("Mathematical bitstream fingerprints computed from acquired bytes. Establishes the immutable baseline.")
+        st.markdown("#### 3. Cryptographic Baseline & Sealing")
 
         render_hash_view(hashes["sha256"], label="SHA-256 Digest (Reference Baseline)")
 
@@ -145,31 +144,15 @@ def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> Non
             st.markdown("<span style='font-size: 11px; font-weight: 600; color: #527C78;'>SHANNON ENTROPY</span>", unsafe_allow_html=True)
             st.code(f"{entropy:.4f} / 8.0000 bits/byte", language=None)
 
-    # Section D — Registration Review
-    with st.container(border=True):
-        st.markdown("#### Section D — Registration Review")
-        st.caption("Verify details before committing this artifact into the immutable evidence repository.")
-
-        col_r1, col_r2, col_r3 = st.columns(3)
-        with col_r1:
-            st.markdown(f"**Title:** {evidence_title}")
-            st.markdown(f"**Case:** `{selected_case}`")
-        with col_r2:
-            st.markdown(f"**Category:** {evidence_category}")
-            st.markdown(f"**File Size:** {file_size:,} bytes")
-        with col_r3:
-            st.markdown(f"**Collector:** {collected_by}")
-            st.markdown(f"**Date:** `{collection_date}`")
-
         st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-        if st.button("Register Evidence", type="primary", use_container_width=True):
+        if st.button("Seal Artifact into Vault", type="primary", use_container_width=True):
             if not evidence_title.strip():
-                st.error("Evidence Title is required.")
+                st.error("Artifact Title is required.")
                 return
 
-            with st.spinner("Sealing artifact and generating immutable custody ledger..."):
-                evidence_id = db.generate_evidence_id()
+            with st.spinner("Sealing artifact into KUSTODRA vault and generating custody token..."):
+                evidence_id = db.generate_artifact_id()
                 vault_dir.mkdir(parents=True, exist_ok=True)
                 safe_name = f"{evidence_id}_{uploaded_file.name}"
                 dest_path = vault_dir / safe_name
@@ -189,6 +172,7 @@ def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> Non
                     "sha1_hash": hashes["sha1"],
                     "shannon_entropy": entropy,
                     "storage_path": str(dest_path),
+                    "storage_rel_path": f"data/vault_storage/{safe_name}",
                     "current_custodian_id": current_user.get("user_id", "USR-101"),
                     "collected_by": collected_by.strip(),
                     "collection_date": str(collection_date),
@@ -203,12 +187,12 @@ def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> Non
                     "evidence_id": evidence_id,
                     "sender_id": current_user.get("user_id", "USR-101"),
                     "receiver_id": current_user.get("user_id", "USR-101"),
-                    "transfer_reason": "Initial Seizure & Intake Registration",
+                    "transfer_reason": "Initial Seizure & Intake Ingestion",
                     "recorded_by_id": current_user.get("user_id", "USR-101"),
                     "signature_token": CryptoEngine.generate_custody_receipt_token(
                         evidence_id, current_user.get("user_id", "USR-101"), current_user.get("user_id", "USR-101"), hashes["sha256"]
                     ),
-                    "notes": "Evidence bitstream ingested and sealed in vault.",
+                    "notes": "Artifact bitstream ingested and sealed in KUSTODRA vault.",
                     "integrity_verified_on_transfer": 1
                 })
 
@@ -226,10 +210,10 @@ def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> Non
                 # Audit log entry
                 audit = AuditEngine(db)
                 audit.log_event(
-                    event_type="EVIDENCE_REGISTERED",
+                    event_type="ARTIFACT_INGESTED",
                     user_id=current_user.get("user_id", "USR-101"),
                     evidence_id=evidence_id,
-                    details=f"Evidence {evidence_id} registered with SHA-256 {hashes['sha256'][:16]}... by {current_user.get('full_name', 'Examiner')}."
+                    details=f"Artifact {evidence_id} ingested into KUSTODRA vault with SHA-256 {hashes['sha256'][:16]}... by {current_user.get('full_name', 'Forensic Examiner')}."
                 )
 
                 st.session_state["just_registered_id"] = evidence_id
@@ -237,16 +221,16 @@ def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> Non
     # Post-Registration Notification & Quick Navigate
     if "just_registered_id" in st.session_state:
         reg_id = st.session_state["just_registered_id"]
-        st.success(f"✅ Digital Evidence successfully registered with ID: **{reg_id}**")
+        st.success(f"✅ Digital Artifact successfully ingested in KUSTODRA with ID: **{reg_id}**")
         col_g1, col_g2 = st.columns(2)
         with col_g1:
-            if st.button("Inspect Evidence Details →", type="primary", use_container_width=True):
+            if st.button("Inspect Artifact Details →", type="primary", use_container_width=True):
                 st.session_state["selected_evidence_id"] = reg_id
-                st.session_state["active_nav"] = "Evidence Details & Metadata"
+                st.session_state["active_nav"] = "Artifact Inspector"
                 del st.session_state["just_registered_id"]
                 st.rerun()
         with col_g2:
-            if st.button("Go to Evidence Repository →", type="secondary", use_container_width=True):
-                st.session_state["active_nav"] = "Evidence Repository"
+            if st.button("Go to Artifact Vault →", type="secondary", use_container_width=True):
+                st.session_state["active_nav"] = "Artifact Vault"
                 del st.session_state["just_registered_id"]
                 st.rerun()

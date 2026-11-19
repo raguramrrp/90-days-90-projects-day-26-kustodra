@@ -52,3 +52,10 @@ desktop.ini
 # App data storage uploads (preserve samples, ignore runtime vault cache if needed)
 data/vault_storage/*
 !data/vault_storage/.gitkeep
+
+# Local screenshots and captured media (Never push to git)
+screenshots/
+*.png
+*.jpg
+*.jpeg
+!screenshots/.gitkeep

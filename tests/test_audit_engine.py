@@ -1,12 +1,12 @@
 """
-Unit tests for TRACEVAULT Tamper-Evident Chained Audit Engine.
+Unit tests for KUSTODRA Tamper-Evident Chained Audit Engine.
 """
 
 import tempfile
 from pathlib import Path
 import pytest
-from tracevault.database import DatabaseManager
-from tracevault.core.audit_engine import AuditEngine
+from kustodra.database import DatabaseManager
+from kustodra.core.audit_engine import AuditEngine
 
 
 @pytest.fixture

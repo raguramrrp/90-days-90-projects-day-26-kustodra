@@ -1,10 +1,10 @@
-# TRACEVAULT - PowerShell Launcher
+# KUSTODRA - PowerShell Launcher
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 Set-Location $ScriptDir
 
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "   Starting TRACEVAULT - Digital Evidence Workstation" -ForegroundColor Cyan
+Write-Host "   Starting KUSTODRA - Digital Asset Management System" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 
 $VenvPython = Join-Path $ScriptDir ".venv\Scripts\python.exe"

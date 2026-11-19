@@ -1,10 +1,10 @@
 """
-Unit tests for TRACEVAULT Metadata Inspector.
+Unit tests for KUSTODRA Metadata Inspector.
 """
 
 import io
 import pytest
-from tracevault.core.metadata_inspector import MetadataInspector
+from kustodra.core.metadata_inspector import MetadataInspector
 
 
 def test_format_bytes():
