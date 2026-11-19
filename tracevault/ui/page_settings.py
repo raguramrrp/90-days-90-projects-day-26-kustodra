@@ -1,7 +1,6 @@
 """
 TRACEVAULT - Settings & Audit Verification Page
-Cryptographic audit ledger validation, user profile switching,
-and database health telemetry.
+Workstation configuration, cryptographic audit ledger verification, and active examiner profiles.
 """
 
 from __future__ import annotations

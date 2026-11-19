@@ -1,11 +1,15 @@
 """
-TRACEVAULT - Integrity Verification Page
-Dedicated verification workspace. Calculates current SHA-256 digest,
-compares with baseline intake hash, determines Match/Mismatch states, and records audit logs.
+TRACEVAULT - Integrity Laboratory Page
+Dedicated cryptographic verification workspace:
+- Select registered evidence
+- Select verification source (Vault baseline, Upload, Authentic Sample, Tampered Sample)
+- Calculate SHA-256 and constant-time comparison
+- Side-by-side comparison panel (Registered vs Calculated)
+- Highlight diffs on mismatch
+- Record permanent verification history
 """
 
 from __future__ import annotations
-import uuid
 from pathlib import Path
 from datetime import datetime, timezone
 import streamlit as st
@@ -18,9 +22,9 @@ from tracevault.ui.components import render_hash_view, get_status_badge_html
 
 
 def render_page(db: DatabaseManager, current_user: dict, samples_dir: Path) -> None:
-    """Render the Integrity Verification Workspace."""
-    st.markdown("### Integrity Verification")
-    st.markdown("<p style='font-size: 13px; color: #68736F; margin-top: -8px; margin-bottom: 16px;'>Cryptographic file comparison engine. Calculate current SHA-256 hashes against immutable registration baselines.</p>", unsafe_allow_html=True)
+    """Render the Integrity Laboratory workspace."""
+    st.markdown("### Integrity Laboratory")
+    st.caption("Compare cryptographic fingerprints to identify changes in digital evidence.")
 
     all_evidence = db.get_evidence_list()
     if not all_evidence:
@@ -32,13 +36,13 @@ def render_page(db: DatabaseManager, current_user: dict, samples_dir: Path) -> N
     if selected_id not in evidence_options:
         selected_id = evidence_options[0]
 
-    # 1. Select Evidence
+    # 1. Evidence Selection
     with st.container(border=True):
-        st.markdown("#### 1. Select Registered Evidence")
+        st.markdown("#### 1. Target Evidence Reference")
         col_s1, col_s2 = st.columns([3, 2])
         with col_s1:
             chosen_id = st.selectbox(
-                "Registered Evidence Item",
+                "Select Registered Evidence Item",
                 options=evidence_options,
                 index=evidence_options.index(selected_id),
                 format_func=lambda x: f"{x} — {[e['title'] for e in all_evidence if e['evidence_id'] == x][0]} ({[e['original_filename'] for e in all_evidence if e['evidence_id'] == x][0]})"
@@ -49,169 +53,173 @@ def render_page(db: DatabaseManager, current_user: dict, samples_dir: Path) -> N
 
         ev = db.get_evidence_by_id(chosen_id)
         with col_s2:
-            status_html = get_status_badge_html(ev['integrity_status'])
-            st.markdown(f"**Current Status:** {status_html}", unsafe_allow_html=True)
+            st.markdown(f"**Current Status:** {get_status_badge_html(ev['integrity_status'])}", unsafe_allow_html=True)
             last_v = ev.get('last_verified_at', 'Never')[:19].replace('T', ' ') if ev.get('last_verified_at') else 'Never'
-            st.markdown(f"**Last Verified:** {last_v}")
+            st.markdown(f"**Last Verified:** `{last_v} UTC`")
 
-    # 2. Select Verification Source
+    # 2. Comparison Source Selection
     with st.container(border=True):
-        st.markdown("#### 2. Select File Source to Verify")
+        st.markdown("#### 2. Comparison Bitstream Source")
+        st.caption("Select the file instance to test against the registered immutable reference.")
+
         verif_mode = st.radio(
-            "Verification Source Mode",
+            "Source Mode",
             options=[
-                "Verify Stored Vault Copy (Test local vault storage bit-rot/tampering)",
-                "Upload File to Verify (Test external copy, thumb drive, or opposing exhibit)",
-                "Forensic Sample Test (Load clean or tampered sample for instant testing)"
+                "Vault Stored Master Copy (Verify local vault archive against bit-rot or tampering)",
+                "External Upload File (Verify thumb drive, suspect device, or opposing copy)",
+                "Forensic Sample Test Suite (Test clean vs altered forensic artifacts)"
             ],
             index=0
         )
 
         file_bytes_to_verify: bytes | None = None
-        source_name = ""
+        source_label = ""
 
-        if "Stored Vault Copy" in verif_mode:
-            vault_path = Path(ev["storage_rel_path"])
-            if vault_path.is_file():
-                source_name = f"Vault Storage: {vault_path.name}"
-                st.caption(f"Located stored vault file: `{vault_path.name}` ({vault_path.stat().st_size:,} Bytes)")
+        if "Vault Stored Master Copy" in verif_mode:
+            storage_path_str = ev.get("storage_path") or ev.get("storage_rel_path")
+            vault_path = Path(storage_path_str) if storage_path_str else None
+            if vault_path and vault_path.is_file():
+                source_label = f"Vault Archive: {vault_path.name}"
+                st.caption(f"Located secure vault copy: `{vault_path.name}` ({vault_path.stat().st_size:,} Bytes)")
                 with open(vault_path, "rb") as f:
                     file_bytes_to_verify = f.read()
             else:
-                st.error(f"Vault storage file not found at path: {vault_path}")
+                st.error("Vault archive file not accessible at registered storage path.")
 
-        elif "Upload File to Verify" in verif_mode:
+        elif "External Upload File" in verif_mode:
             uploaded_verify = st.file_uploader(
-                "Upload local file to compare against registered hash",
+                "Upload file instance for cryptographic verification",
                 type=None,
                 label_visibility="collapsed"
             )
             if uploaded_verify:
-                source_name = f"Uploaded File: {uploaded_verify.name}"
+                source_label = f"External File: {uploaded_verify.name}"
                 file_bytes_to_verify = uploaded_verify.getvalue()
-                st.caption(f"Loaded: `{uploaded_verify.name}` ({len(file_bytes_to_verify):,} Bytes)")
+                st.caption(f"Loaded instance: `{uploaded_verify.name}` ({len(file_bytes_to_verify):,} Bytes)")
 
-        elif "Forensic Sample Test" in verif_mode:
-            st.caption("Select a sample file to test Match vs Mismatch states:")
+        elif "Forensic Sample Test Suite" in verif_mode:
+            st.caption("Load demonstration sample to test mathematical Match or Mismatch states:")
             col_d1, col_d2 = st.columns(2)
             with col_d1:
                 if st.button("Load Authentic Sample (server_access_log.log)", use_container_width=True):
                     sample_file = samples_dir / "server_access_log.log"
                     if sample_file.is_file():
-                        st.session_state["demo_sample_bytes"] = sample_file.read_bytes()
-                        st.session_state["demo_sample_name"] = "server_access_log.log (Authentic)"
-                        st.rerun()
+                        st.session_state["sample_verify_bytes"] = sample_file.read_bytes()
+                        st.session_state["sample_verify_name"] = "server_access_log.log (Authentic)"
             with col_d2:
                 if st.button("Load Tampered Sample (tampered_server_log.log)", use_container_width=True):
                     sample_file = samples_dir / "tampered_server_log.log"
                     if sample_file.is_file():
-                        st.session_state["demo_sample_bytes"] = sample_file.read_bytes()
-                        st.session_state["demo_sample_name"] = "tampered_server_log.log (Scrubbed IP / Modified)"
-                        st.rerun()
+                        st.session_state["sample_verify_bytes"] = sample_file.read_bytes()
+                        st.session_state["sample_verify_name"] = "tampered_server_log.log (Tampered)"
 
-            if "demo_sample_bytes" in st.session_state:
-                file_bytes_to_verify = st.session_state["demo_sample_bytes"]
-                source_name = st.session_state.get("demo_sample_name", "Forensic Sample")
-                st.info(f"Loaded: **{source_name}** ({len(file_bytes_to_verify):,} Bytes)")
+            if "sample_verify_bytes" in st.session_state:
+                file_bytes_to_verify = st.session_state["sample_verify_bytes"]
+                source_label = st.session_state["sample_verify_name"]
+                st.caption(f"Active Sample: **{source_label}** ({len(file_bytes_to_verify):,} Bytes)")
 
-    # 3. Execute Verification
+    # 3. Verification Execution & Hash Comparison Panel
     if file_bytes_to_verify is not None:
         with st.container(border=True):
-            st.markdown("#### 3. Execute Verification")
+            st.markdown("#### 3. Cryptographic Fingerprint Comparison")
+            st.caption("Side-by-side comparison of registered baseline digest versus calculated digest.")
 
-            if st.button("Calculate Current SHA-256 & Compare", type="primary"):
-                hashes = CryptoEngine.calculate_hashes_from_bytes(file_bytes_to_verify)
-                calc_sha256 = hashes["sha256"]
-                expected_sha256 = ev["sha256_hash"]
+            calc_hashes = CryptoEngine.calculate_hashes_from_bytes(file_bytes_to_verify)
+            calc_sha256 = calc_hashes["sha256"]
+            registered_sha256 = ev["sha256_hash"]
 
-                is_match = CryptoEngine.verify_hash(expected_sha256, calc_sha256)
-                timestamp = get_iso_now()
-                check_id = f"CHK-{uuid.uuid4().hex[:8].upper()}"
+            # Constant-time comparison
+            is_match = CryptoEngine.verify_sha256_constant_time(file_bytes_to_verify, registered_sha256)
 
-                result_status = "Match" if is_match else "Mismatch"
-                tamper_details = None if is_match else f"Calculated SHA-256 differs. Source: {source_name}."
+            # Two-Column Comparison Display
+            col_left_hash, col_right_hash = st.columns(2)
+            with col_left_hash:
+                st.markdown("<div class='tv-compare-panel'>", unsafe_allow_html=True)
+                st.markdown("**REGISTERED SHA-256 FINGERPRINT (REFERENCE)**")
+                st.code(registered_sha256, language=None)
+                st.caption(f"Baseline Size: {ev['file_size_bytes']:,} Bytes &bull; Ingested: {ev['created_at'][:10]}")
+                st.markdown("</div>", unsafe_allow_html=True)
 
-                db.add_integrity_check({
-                    "check_id": check_id,
-                    "evidence_id": ev["evidence_id"],
-                    "checked_by_id": current_user["user_id"],
-                    "check_timestamp": timestamp,
-                    "expected_sha256": expected_sha256,
-                    "calculated_sha256": calc_sha256,
-                    "result_status": result_status,
-                    "tamper_details": tamper_details,
-                    "check_mode": verif_mode.split("(")[0].strip(),
-                    "notes": f"Verification performed by {current_user['full_name']}. Source: {source_name}."
-                })
+            with col_right_hash:
+                st.markdown("<div class='tv-compare-panel'>", unsafe_allow_html=True)
+                st.markdown("**CALCULATED SHA-256 FINGERPRINT (INSTANCE)**")
+                st.code(calc_sha256, language=None)
+                st.caption(f"Instance Size: {len(file_bytes_to_verify):,} Bytes &bull; Source: {source_label}")
+                st.markdown("</div>", unsafe_allow_html=True)
 
-                audit = AuditEngine(db)
-                event_type = "INTEGRITY_CHECK_MATCH" if is_match else "INTEGRITY_CHECK_MISMATCH"
-                audit.log_event(
-                    event_type=event_type,
-                    user_id=current_user["user_id"],
-                    evidence_id=ev["evidence_id"],
-                    details=f"Verification result: {result_status.upper()} for {ev['evidence_id']}. Expected: {expected_sha256[:16]}... Calculated: {calc_sha256[:16]}..."
-                )
+            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-                st.session_state["last_verification_result"] = {
-                    "check_id": check_id,
-                    "is_match": is_match,
-                    "expected": expected_sha256,
-                    "calculated": calc_sha256,
-                    "timestamp": timestamp,
-                    "source": source_name
-                }
-                st.rerun()
-
-    # 4. Result Display
-    last_res = st.session_state.get("last_verification_result")
-    if last_res:
-        with st.container(border=True):
-            st.markdown("#### Verification Result")
-
-            if last_res["is_match"]:
-                st.success(f"""
-                **MATCH CONFIRMED**
-                
-                The calculated SHA-256 hash matches the registered hash.  
-                The file contents are identical to the registered baseline version.
-                
-                - **Verification Reference:** `{last_res['check_id']}`
-                - **Timestamp:** {last_res['timestamp'][:19].replace('T', ' ')} UTC
-                - **Source Tested:** {last_res['source']}
-                """)
+            # Match / Mismatch Result State
+            if is_match:
+                st.markdown("""
+                <div class="tv-diff-match">
+                    <div style="font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">&#x2713; INTEGRITY MATCH</div>
+                    <div style="font-size: 13px; margin-top: 4px;">
+                        The calculated SHA-256 fingerprint matches the registered reference. The evidence bitstream is authentic and unmodified.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
             else:
-                st.error(f"""
-                **INTEGRITY MISMATCH DETECTED**
-                
-                The calculated SHA-256 hash does not match the registered hash.  
-                The file contents differ from the registered baseline version.
-                
-                - **Verification Reference:** `{last_res['check_id']}`
-                - **Alert:** Integrity Mismatch logged to audit ledger
-                - **Source Tested:** {last_res['source']}
-                """)
+                st.markdown("""
+                <div class="tv-diff-mismatch">
+                    <div style="font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">&#x26A0; INTEGRITY MISMATCH</div>
+                    <div style="font-size: 13px; margin-top: 4px;">
+                        The calculated fingerprint differs from the registered reference. The file contents are not identical.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
-            col_c1, col_c2 = st.columns(2)
-            with col_c1:
-                render_hash_view(last_res["expected"], label="EXPECTED SHA-256 (INTAKE BASELINE)")
-            with col_c2:
-                render_hash_view(last_res["calculated"], label="CALCULATED SHA-256 (PAYLOAD TESTED)")
+                # Show character-level mismatch locator
+                mismatch_indices = [i for i in range(len(registered_sha256)) if registered_sha256[i] != calc_sha256[i]]
+                st.caption(f"**Cryptographic Divergence:** {len(mismatch_indices)} of 64 hexadecimal characters differ. First mismatch at nibble #{mismatch_indices[0] if mismatch_indices else 'N/A'}.")
 
-    # 5. History Table
+            # Record Verification Action
+            col_save1, col_save2 = st.columns([3, 1])
+            with col_save1:
+                st.caption(f"Examiner: **{current_user.get('full_name', 'Forensic Examiner')}** &bull; Timestamp: **{get_iso_now()} UTC**")
+            with col_save2:
+                if st.button("Record Verification to Ledger", type="primary", use_container_width=True):
+                    res_status = "Match" if is_match else "Mismatch"
+                    db.record_integrity_check({
+                        "evidence_id": chosen_id,
+                        "checked_by_id": current_user.get("user_id", "USR-101"),
+                        "expected_sha256": registered_sha256,
+                        "calculated_sha256": calc_sha256,
+                        "result_status": res_status,
+                        "check_mode": source_label or "Laboratory Verification",
+                        "details": f"Verification against {source_label}: result was {res_status}."
+                    })
+
+                    audit = AuditEngine(db)
+                    event_type = "INTEGRITY_CHECK_MATCH" if is_match else "INTEGRITY_CHECK_MISMATCH"
+                    audit.log_event(
+                        event_type=event_type,
+                        user_id=current_user.get("user_id", "USR-101"),
+                        evidence_id=chosen_id,
+                        details=f"SHA-256 verification against {source_label}: {res_status}. Calculated digest: {calc_sha256[:16]}..."
+                    )
+                    st.success("Verification check permanently recorded to immutable SQLite ledger!")
+                    st.rerun()
+
+    # 4. Historical Verification Ledger
     with st.container(border=True):
-        st.markdown(f"#### Verification History for {ev['evidence_id']}")
-        checks = db.get_integrity_checks_for_evidence(ev["evidence_id"])
+        st.markdown("#### 4. Historical Verification Ledger")
+        st.caption("Permanent record of all previous integrity tests executed on this evidence item.")
+
+        checks = db.get_integrity_checks_for_evidence(chosen_id)
         if checks:
-            chk_rows = []
+            check_table = []
             for c in checks:
-                chk_rows.append({
-                    "Timestamp": c["check_timestamp"][:19].replace("T", " "),
-                    "Examiner": c.get("checked_by_name", c["checked_by_id"]),
-                    "Mode": c.get("check_mode", "Upload"),
-                    "Result": c["result_status"],
-                    "Calculated Hash": c["calculated_sha256"][:24] + "..."
+                calc_hash = c.get("calculated_sha256", "")
+                hash_snip = f"{calc_hash[:16]}...{calc_hash[-8:]}" if len(calc_hash) > 24 else calc_hash
+                check_table.append({
+                    "Timestamp (UTC)": str(c.get("check_timestamp", ""))[:19].replace("T", " "),
+                    "Examiner": c.get("checked_by_name") or c.get("checked_by_id", "Examiner"),
+                    "Mode / Source": c.get("check_mode", "Baseline"),
+                    "Result": c.get("result_status", "Unknown"),
+                    "Calculated SHA-256": hash_snip
                 })
-            st.dataframe(pd.DataFrame(chk_rows), use_container_width=True, hide_index=True)
+            df_hist = pd.DataFrame(check_table)
+            st.dataframe(df_hist, use_container_width=True, hide_index=True)
         else:
-            st.info("No verification checks recorded yet for this item.")
+            st.info("No prior verification records for this evidence item.")

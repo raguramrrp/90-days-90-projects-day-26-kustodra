@@ -1,6 +1,7 @@
 """
-TRACEVAULT - Audit Reports & Documentation Page
-Generates court-ready PDF certificates via ReportLab and tabular forensic exports (CSV/JSON/Markdown).
+TRACEVAULT - Audit & Documentation Page
+Generates formal forensic certificates, case dossier manifests, and immutable audit ledgers.
+Supports ReportLab PDF compilation and Markdown/CSV/JSON exports.
 """
 
 from __future__ import annotations
@@ -16,17 +17,17 @@ from tracevault.core.audit_engine import AuditEngine
 
 
 def render_page(db: DatabaseManager, current_user: dict) -> None:
-    """Render the Forensic Reporting & Audit Export workspace."""
-    st.markdown("### Forensic Audit Reports")
+    """Render the Audit & Documentation workspace."""
+    st.markdown("### Audit & Documentation")
     st.caption("Generate certified evidence documentation, case dossiers, and immutable audit logs.")
 
     all_evidence = db.get_evidence_list()
     if not all_evidence:
-        st.info("No evidence registered to generate reports for.")
+        st.info("No evidence registered to generate documentation for.")
         return
 
     tab_cert, tab_case, tab_audit = st.tabs([
-        "Evidence Certificate",
+        "Evidence Documentation & Certificate",
         "Case Dossier Manifest",
         "System Audit Trail Export"
     ])
@@ -34,8 +35,8 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
     # Tab 1: Evidence Documentation & Certificate
     with tab_cert:
         with st.container(border=True):
-            st.markdown("#### Evidence & Chain-of-Custody Documentation")
-            st.caption("Generate an official document containing baseline hashes, custody timeline, and verification history.")
+            st.markdown("#### Evidence & Chain-of-Custody Certificate")
+            st.caption("Formal evidence record documenting cryptographic baselines, custody transfers, and verification history.")
 
             selected_id = st.session_state.get("selected_evidence_id", all_evidence[0]["evidence_id"])
             evidence_options = [e["evidence_id"] for e in all_evidence]
@@ -45,14 +46,14 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
             col_ev_sel, col_agency = st.columns(2)
             with col_ev_sel:
                 chosen_id = st.selectbox(
-                    "Select Evidence Record *",
+                    "Target Evidence Record *",
                     options=evidence_options,
                     index=evidence_options.index(selected_id),
                     format_func=lambda x: f"{x} — {[e['title'] for e in all_evidence if e['evidence_id'] == x][0]}"
                 )
             with col_agency:
                 agency_name = st.text_input(
-                    "Agency / Department Name",
+                    "Issuing Agency / Laboratory",
                     value="Digital Forensics & Evidence Integrity Workstation"
                 )
 
@@ -63,17 +64,16 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
             pdf_supported = ReportGenerator.is_available()
 
             col_btn1, col_btn2 = st.columns(2)
-
             with col_btn1:
                 if pdf_supported:
-                    if st.button("Generate Official PDF Certificate", type="primary", use_container_width=True):
+                    if st.button("Compile PDF Certificate", type="primary", use_container_width=True):
                         with st.spinner("Compiling publication-grade PDF certificate..."):
                             try:
                                 pdf_bytes = ReportGenerator.generate_evidence_certificate(
                                     evidence=ev,
                                     custody_logs=custody_logs,
                                     integrity_checks=integrity_checks,
-                                    generated_by_name=current_user.get("full_name", "Examiner"),
+                                    generated_by_name=current_user.get("full_name", "Forensic Examiner"),
                                     agency_name=agency_name
                                 )
                                 st.session_state["generated_pdf_bytes"] = pdf_bytes
@@ -85,12 +85,12 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
                                     event_type="REPORT_GENERATED",
                                     user_id=current_user.get("user_id", "USR-101"),
                                     evidence_id=chosen_id,
-                                    details=f"Official PDF Evidence Certificate compiled for {chosen_id} by {current_user.get('full_name', 'Examiner')}."
+                                    details=f"PDF Evidence Certificate compiled for {chosen_id} by {current_user.get('full_name', 'Forensic Examiner')}."
                                 )
                             except Exception as ex:
                                 st.error(f"Error compiling PDF: {ex}")
                 else:
-                    st.info("💡 ReportLab is not detected in this Python environment. PDF export requires `reportlab`. You can export the full report in Markdown / Text format below.")
+                    st.info("💡 ReportLab is not installed in this environment. You can preview and export the full report in Markdown format.")
 
             with col_btn2:
                 if st.button("Generate Markdown Report", type="secondary", use_container_width=True):
@@ -98,13 +98,13 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
                         evidence=ev,
                         custody_logs=custody_logs,
                         integrity_checks=integrity_checks,
-                        generated_by_name=current_user.get("full_name", "Examiner"),
+                        generated_by_name=current_user.get("full_name", "Forensic Examiner"),
                         agency_name=agency_name
                     )
                     st.session_state["generated_md_text"] = md_text
                     st.session_state["generated_md_id"] = chosen_id
 
-            # Download PDF if available
+            # Download PDF
             if pdf_supported and "generated_pdf_bytes" in st.session_state and st.session_state.get("generated_pdf_id") == chosen_id:
                 pdf_data = st.session_state["generated_pdf_bytes"]
                 filename = f"TRACEVAULT_CERTIFICATE_{chosen_id}_{datetime.now(timezone.utc).strftime('%Y%m%d')}.pdf"
@@ -117,7 +117,7 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
                     use_container_width=True
                 )
 
-            # Download Markdown if generated
+            # Download & Preview Markdown
             if "generated_md_text" in st.session_state and st.session_state.get("generated_md_id") == chosen_id:
                 md_data = st.session_state["generated_md_text"]
                 md_filename = f"TRACEVAULT_REPORT_{chosen_id}_{datetime.now(timezone.utc).strftime('%Y%m%d')}.md"
@@ -128,20 +128,20 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
                     mime="text/markdown",
                     use_container_width=True
                 )
-                with st.expander("Report Preview", expanded=False):
+                with st.expander("Document Preview", expanded=True):
                     st.markdown(md_data)
 
-    # Tab 2: Case Dossier Summary
+    # Tab 2: Case Dossier Manifest
     with tab_case:
         with st.container(border=True):
             st.markdown("#### Case Evidence Dossier Export")
-            st.caption("Manifest of all digital exhibits registered to an active case file.")
+            st.caption("Complete evidentiary manifest of all digital artifacts registered under a case file.")
 
             cases = db.get_cases()
             if cases:
                 case_options = {c["case_id"]: f"{c['case_id']} — {c['case_title']}" for c in cases}
                 selected_case_id = st.selectbox(
-                    "Select Case to Export",
+                    "Select Case File to Export",
                     options=list(case_options.keys()),
                     format_func=lambda x: case_options[x]
                 )
@@ -163,13 +163,13 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
                 else:
                     st.info("No evidence registered under this case file.")
             else:
-                st.info("No cases found.")
+                st.info("No active case files found.")
 
     # Tab 3: System Audit Trail Export
     with tab_audit:
         with st.container(border=True):
             st.markdown("#### Immutable Audit Trail Export")
-            st.caption("Full system activity ledger including cryptographic chained block hashes.")
+            st.caption("Full system activity ledger including sequential cryptographic block hashes.")
 
             audit_logs = db.get_all_audit_logs_ascending()
             if audit_logs:

@@ -1,7 +1,10 @@
 """
-TRACEVAULT - Evidence Registration Page
-Sequential 5-step intake workflow: file selection, metadata extraction,
-cryptographic hashing, review, and vault registration.
+TRACEVAULT - Evidence Intake Page
+Controlled forensic intake process:
+- Section A: File Acquisition & Magic Signature Inspection
+- Section B: Evidence Description & Case Context
+- Section C: Cryptographic Fingerprint Panel (SHA-256, MD5, SHA-1, Entropy)
+- Section D: Review & Intake Registration
 """
 
 from __future__ import annotations
@@ -19,28 +22,31 @@ from tracevault.ui.components import render_hash_view
 
 
 def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> None:
-    """Render the Evidence Registration sequence."""
-    st.markdown("### Register New Evidence")
-    st.markdown("<p style='font-size: 13px; color: #68736F; margin-top: -8px; margin-bottom: 16px;'>Ingest digital artifacts into secure vault custody with automated SHA-256 hashing and provenance records.</p>", unsafe_allow_html=True)
+    """Render the controlled Evidence Intake sequence."""
+    st.markdown("### Evidence Intake")
+    st.caption("Register a digital artifact and establish its initial integrity reference.")
 
-    # Step 1: Select File
+    # Section A — File Acquisition
     with st.container(border=True):
-        st.markdown("#### 1. Select File")
+        st.markdown("#### Section A — File Acquisition")
+        st.caption("Acquire the digital artifact into secure memory. Cryptographic hashing and file signature detection execute automatically.")
+
         uploaded_file = st.file_uploader(
-            "Select evidence file",
+            "Acquire Evidence File",
             type=None,
-            help="Upload any digital file format (logs, images, videos, documents, or binary archives).",
+            help="Acquire any digital evidence format (logs, images, videos, documents, or raw binaries).",
             label_visibility="collapsed"
         )
 
         if not uploaded_file:
-            st.info("Select or drag a file to begin registration.")
+            st.info("Select or drag a digital evidence file to acquire its bitstream.")
             return
 
         file_bytes = uploaded_file.getvalue()
         file_size = len(file_bytes)
+        file_ext = Path(uploaded_file.name).suffix.lower() or "None"
 
-        # Immediate Hashing & Inspection
+        # Immediate Hashing & File Inspection
         hashes = CryptoEngine.calculate_hashes_from_bytes(file_bytes)
         entropy = CryptoEngine.calculate_shannon_entropy(file_bytes)
         meta = MetadataInspector.inspect_file(file_bytes, uploaded_file.name)
@@ -52,32 +58,38 @@ def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> Non
             file_size=file_size
         )
 
-        # Metric summary of uploaded file
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Filename", uploaded_file.name)
-        col2.metric("Size", meta["file_size_formatted"])
-        col3.metric("Detected Header", meta["magic_signature"])
-        col4.metric("Entropy", f"{entropy:.2f} / 8.0")
+        col_a1, col_a2, col_a3, col_a4 = st.columns(4)
+        with col_a1:
+            st.metric("Filename", uploaded_file.name)
+        with col_a2:
+            st.metric("Reported Ext", file_ext)
+        with col_a3:
+            st.metric("Detected MIME", meta["mime_type"])
+        with col_a4:
+            st.metric("File Size", meta["file_size_formatted"])
+
+        st.caption(f"**Acquisition Status:** Processed {file_size:,} bytes &bull; Magic Header: <code>{meta['magic_signature']}</code>")
 
         if meta["is_spoofed"]:
-            st.warning(f"Header Divergence Alert: {meta['spoof_warning']}")
+            st.warning(f"⚠️ Header Divergence Alert: {meta['spoof_warning']} (Extension does not confirm true file identity)")
 
         duplicates = db.find_duplicates_by_hash(hashes["sha256"])
         if duplicates:
-            st.warning(f"Duplicate Match: This exact SHA-256 hash was previously registered in case {duplicates[0]['case_id']} as {duplicates[0]['evidence_id']}.")
+            st.warning(f"⚠️ Duplicate Hash Detected: Identical bitstream already exists in Case {duplicates[0]['case_id']} as Record {duplicates[0]['evidence_id']}.")
 
-    # Step 2: Enter Evidence Details
+    # Section B — Evidence Description
     with st.container(border=True):
-        st.markdown("#### 2. Evidence Details")
+        st.markdown("#### Section B — Evidence Description")
+        st.caption("Provide provenance, collection details, and case reference.")
 
         cases = db.get_cases()
         case_options = {c["case_id"]: f"{c['case_id']} — {c['case_title']}" for c in cases}
         case_ids = list(case_options.keys())
 
-        col_d1, col_d2 = st.columns(2)
-        with col_d1:
+        col_b1, col_b2 = st.columns(2)
+        with col_b1:
             selected_case = st.selectbox(
-                "Associated Case Reference *",
+                "Case Reference *",
                 options=case_ids,
                 format_func=lambda cid: case_options.get(cid, cid)
             )
@@ -97,92 +109,144 @@ def render_page(db: DatabaseManager, current_user: dict, vault_dir: Path) -> Non
                 "Executable / Malware Artifact"
             ]
             default_cat = classification["category"] if classification["category"] in category_options else category_options[0]
-            evidence_category = st.selectbox("Category *", options=category_options, index=category_options.index(default_cat))
+            evidence_category = st.selectbox(
+                "Evidence Category *",
+                options=category_options,
+                index=category_options.index(default_cat)
+            )
 
-        with col_d2:
+        with col_b2:
             collected_by = st.text_input("Collected By *", value=current_user.get("full_name", "Forensic Examiner"))
-            collection_date = st.text_input("Collection Date & Time (UTC) *", value=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"))
-            collection_location = st.text_input("Collection Location (Optional)", placeholder="e.g. Workstation 4 / Network Switch Port 2")
+            collection_date = st.date_input("Collection Date *", value=datetime.now(timezone.utc).date())
+            collection_location = st.text_input("Collection Location / Device", placeholder="E.g. Primary Server Rack 3 / Suspect Workstation")
 
-        evidence_desc = st.text_area("Description & Context (Optional)", placeholder="Enter relevant investigative context...", height=65)
+        description = st.text_area(
+            "Evidence Description",
+            placeholder="Detailed description of artifact context, chain of seizure, or initial observations...",
+            height=70
+        )
+        notes = st.text_input("Operational Notes", placeholder="E.g. Write-blocker used during acquisition")
 
-    # Step 3: Calculate SHA-256
+    # Section C — Cryptographic Fingerprint
     with st.container(border=True):
-        st.markdown("#### 3. Cryptographic Hashing")
-        st.caption("Calculated SHA-256 bitstream fingerprint anchored at intake")
+        st.markdown("#### Section C — Cryptographic Fingerprint")
+        st.caption("Mathematical bitstream fingerprints computed from acquired bytes. Establishes the immutable baseline.")
 
-        render_hash_view(hashes["sha256"], label="SHA-256 BASELINE HASH")
+        render_hash_view(hashes["sha256"], label="SHA-256 Digest (Reference Baseline)")
 
-        with st.expander("Secondary Hashes (MD5 & SHA-1)"):
-            col_m1, col_m2 = st.columns(2)
-            with col_m1:
-                render_hash_view(hashes["md5"], label="MD5")
-            with col_m2:
-                render_hash_view(hashes["sha1"], label="SHA-1")
+        col_c1, col_c2, col_c3 = st.columns(3)
+        with col_c1:
+            st.markdown("<span style='font-size: 11px; font-weight: 600; color: #527C78;'>MD5 DIGEST</span>", unsafe_allow_html=True)
+            st.code(hashes["md5"], language=None)
+        with col_c2:
+            st.markdown("<span style='font-size: 11px; font-weight: 600; color: #527C78;'>SHA-1 DIGEST</span>", unsafe_allow_html=True)
+            st.code(hashes["sha1"], language=None)
+        with col_c3:
+            st.markdown("<span style='font-size: 11px; font-weight: 600; color: #527C78;'>SHANNON ENTROPY</span>", unsafe_allow_html=True)
+            st.code(f"{entropy:.4f} / 8.0000 bits/byte", language=None)
 
-    # Step 4 & 5: Review & Register
+    # Section D — Registration Review
     with st.container(border=True):
-        st.markdown("#### 4. Review & Register")
-        st.markdown(f"""
-        - **Exhibit:** {evidence_title} (`{uploaded_file.name}`)
-        - **Category:** {evidence_category} &bull; **Size:** {meta['file_size_formatted']}
-        - **Case:** {selected_case} &bull; **Custodian:** {collected_by}
-        - **SHA-256:** `{hashes['sha256']}`
-        """)
+        st.markdown("#### Section D — Registration Review")
+        st.caption("Verify details before committing this artifact into the immutable evidence repository.")
 
-        col_reg, _ = st.columns([1, 3])
-        with col_reg:
-            if st.button("Register Evidence", type="primary", use_container_width=True):
-                if not evidence_title.strip():
-                    st.error("Please provide an Evidence Title.")
-                    return
+        col_r1, col_r2, col_r3 = st.columns(3)
+        with col_r1:
+            st.markdown(f"**Title:** {evidence_title}")
+            st.markdown(f"**Case:** `{selected_case}`")
+        with col_r2:
+            st.markdown(f"**Category:** {evidence_category}")
+            st.markdown(f"**File Size:** {file_size:,} bytes")
+        with col_r3:
+            st.markdown(f"**Collector:** {collected_by}")
+            st.markdown(f"**Date:** `{collection_date}`")
 
-                new_id = f"EV-{datetime.now(timezone.utc).year}-{uuid.uuid4().hex[:4].upper()}"
+        st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-                # Store file in vault
+        if st.button("Register Evidence", type="primary", use_container_width=True):
+            if not evidence_title.strip():
+                st.error("Evidence Title is required.")
+                return
+
+            with st.spinner("Sealing artifact and generating immutable custody ledger..."):
+                evidence_id = db.generate_evidence_id()
                 vault_dir.mkdir(parents=True, exist_ok=True)
-                stored_name = f"{new_id}_{uploaded_file.name}"
-                target_path = vault_dir / stored_name
-                with open(target_path, "wb") as f:
-                    f.write(file_bytes)
+                safe_name = f"{evidence_id}_{uploaded_file.name}"
+                dest_path = vault_dir / safe_name
+                dest_path.write_bytes(file_bytes)
 
-                evidence_payload = {
-                    "evidence_id": new_id,
+                db.create_evidence({
+                    "evidence_id": evidence_id,
                     "case_id": selected_case,
                     "title": evidence_title.strip(),
-                    "description": evidence_desc.strip(),
                     "category": evidence_category,
+                    "description": description.strip(),
                     "original_filename": uploaded_file.name,
-                    "file_extension": meta["file_extension"],
-                    "mime_type": meta["mime_type"],
-                    "magic_signature": meta["magic_signature"],
                     "file_size_bytes": file_size,
+                    "mime_type": meta["mime_type"],
                     "sha256_hash": hashes["sha256"],
                     "md5_hash": hashes["md5"],
                     "sha1_hash": hashes["sha1"],
                     "shannon_entropy": entropy,
-                    "collection_date": collection_date,
-                    "collection_location": collection_location.strip(),
+                    "storage_path": str(dest_path),
+                    "current_custodian_id": current_user.get("user_id", "USR-101"),
                     "collected_by": collected_by.strip(),
-                    "registered_by_id": current_user["user_id"],
-                    "current_custodian_id": current_user["user_id"],
-                    "integrity_status": "Not Yet Verified",
-                    "storage_rel_path": str(target_path.as_posix()),
-                    "metadata": meta
-                }
+                    "collection_date": str(collection_date),
+                    "collection_location": collection_location.strip(),
+                    "integrity_status": "Verified",
+                    "registered_by_id": current_user.get("user_id", "USR-101"),
+                    "notes": notes.strip()
+                })
 
-                db.add_evidence(evidence_payload)
+                # Log initial custody receipt
+                db.add_custody_log({
+                    "evidence_id": evidence_id,
+                    "sender_id": current_user.get("user_id", "USR-101"),
+                    "receiver_id": current_user.get("user_id", "USR-101"),
+                    "transfer_reason": "Initial Seizure & Intake Registration",
+                    "recorded_by_id": current_user.get("user_id", "USR-101"),
+                    "signature_token": CryptoEngine.generate_custody_receipt_token(
+                        evidence_id, current_user.get("user_id", "USR-101"), current_user.get("user_id", "USR-101"), hashes["sha256"]
+                    ),
+                    "notes": "Evidence bitstream ingested and sealed in vault.",
+                    "integrity_verified_on_transfer": 1
+                })
 
-                # Chained audit event
+                # Initial baseline integrity check
+                db.record_integrity_check({
+                    "evidence_id": evidence_id,
+                    "checked_by_id": current_user.get("user_id", "USR-101"),
+                    "expected_sha256": hashes["sha256"],
+                    "calculated_sha256": hashes["sha256"],
+                    "result_status": "Match",
+                    "check_mode": "Baseline Intake Verification",
+                    "details": "Cryptographic fingerprint confirmed matching at intake."
+                })
+
+                # Audit log entry
                 audit = AuditEngine(db)
                 audit.log_event(
                     event_type="EVIDENCE_REGISTERED",
-                    user_id=current_user["user_id"],
-                    evidence_id=new_id,
-                    details=f"Evidence {new_id} ('{evidence_title}') registered. SHA-256: {hashes['sha256'][:16]}..."
+                    user_id=current_user.get("user_id", "USR-101"),
+                    evidence_id=evidence_id,
+                    details=f"Evidence {evidence_id} registered with SHA-256 {hashes['sha256'][:16]}... by {current_user.get('full_name', 'Examiner')}."
                 )
 
-                st.success(f"Evidence successfully registered under ID: {new_id}")
-                st.session_state["selected_evidence_id"] = new_id
+                st.session_state["just_registered_id"] = evidence_id
+
+    # Post-Registration Notification & Quick Navigate
+    if "just_registered_id" in st.session_state:
+        reg_id = st.session_state["just_registered_id"]
+        st.success(f"✅ Digital Evidence successfully registered with ID: **{reg_id}**")
+        col_g1, col_g2 = st.columns(2)
+        with col_g1:
+            if st.button("Inspect Evidence Details →", type="primary", use_container_width=True):
+                st.session_state["selected_evidence_id"] = reg_id
                 st.session_state["active_nav"] = "Evidence Details & Metadata"
+                del st.session_state["just_registered_id"]
+                st.rerun()
+        with col_g2:
+            if st.button("Go to Evidence Repository →", type="secondary", use_container_width=True):
+                st.session_state["active_nav"] = "Evidence Repository"
+                del st.session_state["just_registered_id"]
                 st.rerun()

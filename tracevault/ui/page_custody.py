@@ -1,23 +1,22 @@
 """
-TRACEVAULT - Chain of Custody Timeline Page
-Visual custody timeline and transfer authorization workspace.
-Generates cryptographic transfer receipts and updates active custodian.
+TRACEVAULT - Chain of Custody Page
+Forensic ledger tracking possession and transfer history of digital evidence.
+Provides chronological ledger timeline, cryptographic handover receipts, and custody transfer authorization.
 """
 
 from __future__ import annotations
 import streamlit as st
 import pandas as pd
-from datetime import datetime, timezone
 
-from tracevault.database import DatabaseManager, get_iso_now
+from tracevault.database import DatabaseManager
 from tracevault.core.custody_manager import CustodyManager
-from tracevault.core.crypto_engine import CryptoEngine
+from tracevault.ui.components import get_status_badge_html
 
 
 def render_page(db: DatabaseManager, current_user: dict) -> None:
-    """Render the Chain-of-Custody timeline and transfer workflow."""
+    """Render the Chain of Custody ledger and transfer workflow."""
     st.markdown("### Chain of Custody")
-    st.caption("Forensic possession ledger. Track, transfer, and record legal custody across examiners, investigators, and secure vaults.")
+    st.caption("Review the documented possession and transfer history of digital evidence.")
 
     all_evidence = db.get_evidence_list()
     if not all_evidence:
@@ -43,60 +42,54 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
     custody_manager = CustodyManager(db)
     timeline = custody_manager.get_timeline(chosen_id)
 
-    # 1. Active Custodian Summary
+    # 1. Current Legal Custodian Banner
     with st.container(border=True):
         col_c1, col_c2, col_c3 = st.columns([2, 2, 1])
         with col_c1:
-            st.caption("CURRENT CUSTODIAN")
+            st.caption("CURRENT ACTIVE CUSTODIAN")
             custodian_name = ev.get("custodian_name") or ev.get("current_custodian_id", "Unknown")
             custodian_role = ev.get("custodian_role", "Evidence Custodian")
             st.markdown(f"**{custodian_name}**")
-            st.caption(f"Role: {custodian_role}")
+            st.caption(f"Role: {custodian_role} &bull; Org: {ev.get('custodian_org', 'Evidence Management Unit')}")
 
         with col_c2:
-            st.caption("EVIDENCE RECORD")
-            st.markdown(f"**{ev['evidence_id']}** — {ev['title']}")
-            st.caption(f"Original file: `{ev['original_filename']}` ({ev['file_size_bytes']:,} bytes)")
+            st.caption("EVIDENCE IDENTIFIER")
+            st.markdown(f"**{ev['evidence_id']}** &mdash; {ev['title']}")
+            st.caption(f"Original file: `{ev['original_filename']}` ({ev['file_size_bytes']:,} Bytes)")
 
         with col_c3:
             st.caption("INTEGRITY STATUS")
-            status = ev["integrity_status"]
-            if status == "Verified":
-                st.success(f"● {status}")
-            elif status == "Mismatch":
-                st.error(f"● {status}")
-            else:
-                st.warning(f"● {status}")
+            st.markdown(get_status_badge_html(ev['integrity_status']), unsafe_allow_html=True)
 
     col_tl, col_trans = st.columns([3, 2])
 
-    # 2. Chronological Timeline
+    # 2. Chronological Possession Ledger (Left Column)
     with col_tl:
         with st.container(border=True):
-            st.markdown("#### Custody Timeline")
-            st.caption("Chronological record of custody intake, handovers, and releases.")
+            st.markdown("#### Chronological Custody Ledger")
+            st.caption("Documented historical sequence of releases, receipts, and custody handovers.")
 
-            # Baseline Intake
+            # Seizure / Intake Initial Entry
             with st.container(border=True):
-                st.markdown(f"**Intake & Initial Registration** &nbsp;·&nbsp; `{ev['collection_date']}`")
+                st.markdown(f"**Event #0: Initial Seizure & Registration** &bull; `{ev['collection_date']}`")
                 st.caption(
-                    f"Collected by **{ev['collected_by']}** from *{ev.get('collection_location') or 'Field Location'}*.\n"
-                    f"Registered in vault by **{ev.get('registered_by_name', ev['registered_by_id'])}**."
+                    f"Collected by **{ev['collected_by']}** at *{ev.get('collection_location') or 'Field Location'}*.\n"
+                    f"Ingested into vault archive by **{ev.get('registered_by_name', ev['registered_by_id'])}**."
                 )
 
-            # Timeline Events
+            # Historical Transfers
             if timeline:
                 for idx, log in enumerate(timeline):
                     with st.container(border=True):
                         time_str = log["transfer_timestamp"][:19].replace("T", " ")
-                        sender = log.get("sender_name") or log.get("sender_id", "N/A")
-                        receiver = log.get("receiver_name") or log.get("receiver_id", "N/A")
+                        sender = log.get("sender_name") or log.get("sender_id", "Sender")
+                        receiver = log.get("receiver_name") or log.get("receiver_id", "Receiver")
                         reason = log.get("transfer_reason", "Transfer")
                         token = log.get("signature_token", "")
                         token_snip = f"{token[:16]}..." if token else "N/A"
 
-                        st.markdown(f"**Transfer #{idx + 1}: {sender} ➔ {receiver}**")
-                        st.caption(f"Date: `{time_str} UTC` · Reason: **{reason}**")
+                        st.markdown(f"**Event #{idx + 1}: {sender} &rarr; {receiver}**")
+                        st.caption(f"Timestamp: `{time_str} UTC` &bull; Reason: **{reason}**")
 
                         if log.get("notes"):
                             st.write(f"_{log['notes']}_")
@@ -104,15 +97,15 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
                         if log.get("integrity_verified_on_transfer"):
                             st.caption("✅ Integrity verified during transfer")
 
-                        st.caption(f"Receipt Token: `{token_snip}`")
+                        st.caption(f"Cryptographic Receipt Token: `{token_snip}`")
             else:
-                st.info("No transfers recorded yet. Evidence remains with initial custodian.")
+                st.info("No transfers recorded. Evidence remains with initial collecting custodian.")
 
-    # 3. Transfer Custody Form
+    # 3. Transfer Custody Action Panel (Right Column)
     with col_trans:
         with st.container(border=True):
-            st.markdown("#### Record Transfer")
-            st.caption("Transfer evidence to another registered custodian.")
+            st.markdown("#### Record Custody Transfer")
+            st.caption("Document and authorize legal evidence release to another registered custodian.")
 
             users = db.get_users()
             user_options = {u["user_id"]: f"{u['full_name']} ({u['role']})" for u in users}
@@ -127,7 +120,7 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
 
             eligible_receivers = [uid for uid in user_options.keys() if uid != sender_id]
             if not eligible_receivers:
-                st.warning("No alternative registered custodians available.")
+                st.warning("No alternative registered custodians available to receive custody.")
                 return
 
             receiver_id = st.selectbox(
@@ -149,13 +142,13 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
                 ]
             )
 
-            notes = st.text_area("Transfer Notes", placeholder="E.g., Courier details, locker number...", height=70)
-            verify_on_transfer = st.checkbox("Verify SHA-256 integrity on transfer", value=True)
-            confirm_transfer = st.checkbox("Confirm transfer authorization *")
+            notes = st.text_area("Transfer Notes", placeholder="E.g. Handover locker ID, courier pouch tracking...", height=70)
+            verify_on_transfer = st.checkbox("Verify SHA-256 integrity on release", value=True)
+            confirm_transfer = st.checkbox("I authorize and certify this legal custody transfer *")
 
-            if st.button("Record Transfer", type="primary", use_container_width=True):
+            if st.button("Authorize Transfer", type="primary", use_container_width=True):
                 if not confirm_transfer:
-                    st.error("Please check the confirmation box to authorize this transfer.")
+                    st.error("Transfer authorization confirmation is required.")
                     return
 
                 try:
@@ -170,7 +163,7 @@ def render_page(db: DatabaseManager, current_user: dict) -> None:
                         verify_hash_now=verify_on_transfer,
                         current_file_hash=current_hash
                     )
-                    st.success("Custody transfer recorded successfully!")
+                    st.success("Custody transfer executed and sealed with cryptographic receipt token!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Transfer error: {e}")

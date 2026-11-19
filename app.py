@@ -1,6 +1,7 @@
 """
 TRACEVAULT - Main Streamlit Application Entrypoint
 Digital Evidence Integrity & Chain-of-Custody Management System
+Expert Digital Forensics Workstation UI/UX Shell
 """
 
 from __future__ import annotations
@@ -29,13 +30,13 @@ from tracevault.ui import (
 
 # Page configuration
 st.set_page_config(
-    page_title="TRACEVAULT - Digital Evidence Integrity & Custody",
+    page_title="TRACEVAULT — Digital Forensics Workstation",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Inject visual design stylesheet
+# Inject visual identity stylesheet
 st.markdown(WORKSTATION_CSS, unsafe_allow_html=True)
 
 
@@ -75,67 +76,69 @@ def main() -> None:
 
     current_user = st.session_state["current_user"]
 
-    # Top Header Bar
+    # Top Application Header Shell
     render_header(current_user)
 
-    # Navigation options per specification
+    # 7 Forensic Navigation Items
     nav_items = [
-        ("Overview", "Overview"),
-        ("Register Evidence", "Register Evidence"),
-        ("Evidence Repository", "Evidence Repository"),
-        ("Integrity Verification", "Integrity Verification"),
-        ("Chain of Custody", "Chain of Custody"),
-        ("Audit Reports", "Audit Reports"),
-        ("Settings", "Settings"),
+        ("Overview", "Overview", "📋"),
+        ("Evidence Intake", "Evidence Intake", "📥"),
+        ("Evidence Repository", "Evidence Repository", "🗄️"),
+        ("Integrity Lab", "Integrity Lab", "🔬"),
+        ("Chain of Custody", "Chain of Custody", "⛓️"),
+        ("Audit & Reports", "Audit & Reports", "📄"),
+        ("Settings", "Settings", "⚙️"),
     ]
 
     current_nav = st.session_state.get("active_nav", "Overview")
 
-    # Left Navigation Sidebar
+    # Left Vertical Navigation Panel
     with st.sidebar:
         st.markdown("""
-        <div style="padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid #E1E6E3;">
+        <div style="padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid #DCE3DE;">
             <div style="font-size: 16px; font-weight: 700; color: #315F50; letter-spacing: 0.5px;">TRACEVAULT</div>
-            <div style="font-size: 11px; color: #68736F;">Evidence Integrity & Custody</div>
+            <div style="font-size: 10px; font-weight: 600; color: #697570; letter-spacing: 0.6px; text-transform: uppercase;">Forensic Workstation</div>
         </div>
         """, unsafe_allow_html=True)
 
-        for label, nav_target in nav_items:
+        for label, nav_target, icon in nav_items:
             is_active = (current_nav == nav_target)
             btn_type = "primary" if is_active else "secondary"
-            if st.button(label, key=f"nav_{nav_target}", type=btn_type, use_container_width=True):
+            btn_text = f"{icon}  {label}"
+            if st.button(btn_text, key=f"nav_{nav_target}", type=btn_type, use_container_width=True):
                 st.session_state["active_nav"] = nav_target
                 st.rerun()
 
         st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
         st.markdown("""
-        <div style="font-size: 11px; color: #68736F; padding-top: 16px; border-top: 1px solid #E1E6E3; line-height: 1.6;">
+        <div style="font-size: 11px; color: #697570; padding-top: 14px; border-top: 1px solid #DCE3DE; line-height: 1.6;">
             <b>Storage:</b> SQLite WAL Mode<br>
             <b>Hashing:</b> SHA-256 Bitstream<br>
-            <b>Ledger:</b> Tamper-Evident Chain
+            <b>Ledger:</b> Chained / Immutable
         </div>
         """, unsafe_allow_html=True)
 
-    # Route to Selected Page
+    # Route to Selected Forensic Workspace
     active_page = st.session_state["active_nav"]
 
     if active_page == "Overview":
         page_overview.render_page(db, current_user)
-    elif active_page == "Register Evidence":
+    elif active_page == "Evidence Intake":
         page_register.render_page(db, current_user, vault_dir)
     elif active_page == "Evidence Repository":
         page_repository.render_page(db, current_user)
     elif active_page == "Evidence Details & Metadata":
-        # Provide quick link back to repository
-        if st.button("← Back to Evidence Repository", type="secondary"):
-            st.session_state["active_nav"] = "Evidence Repository"
-            st.rerun()
+        col_back, _ = st.columns([1, 4])
+        with col_back:
+            if st.button("← Back to Repository", type="secondary"):
+                st.session_state["active_nav"] = "Evidence Repository"
+                st.rerun()
         page_details.render_page(db, current_user)
-    elif active_page == "Integrity Verification":
+    elif active_page == "Integrity Lab":
         page_verify.render_page(db, current_user, samples_dir)
     elif active_page == "Chain of Custody":
         page_custody.render_page(db, current_user)
-    elif active_page == "Audit Reports":
+    elif active_page == "Audit & Reports":
         page_reports.render_page(db, current_user)
     elif active_page == "Settings":
         page_settings.render_page(db, current_user, db_path)

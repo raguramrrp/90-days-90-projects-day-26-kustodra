@@ -1,6 +1,6 @@
 # TRACEVAULT — Digital Evidence Integrity & Chain-of-Custody Management System
 
-[![Build & Test](https://img.shields.io/badge/tests-21%20passed-287A54?style=flat-square)](tests/)
+[![Build & Test](https://img.shields.io/badge/tests-23%20passed-287A54?style=flat-square)](tests/)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-315F50?style=flat-square)](https://www.python.org/)
 [![UI Framework](https://img.shields.io/badge/UI-Streamlit-315F50?style=flat-square)](https://streamlit.io/)
 [![Database](https://img.shields.io/badge/Database-SQLite%20WAL-789487?style=flat-square)](https://www.sqlite.org/)
@@ -17,49 +17,59 @@ TRACEVAULT solves this problem by providing an air-gapped forensic workstation t
 
 ---
 
-## 2. Objectives & Intended Users
-- **Primary Objective:** Deliver a lightweight, reproducible workstation for evidence intake, hash verification, chain of custody logging, and PDF report compilation.
-- **Intended Users:**
-  - Digital Forensics Examiners & Incident Responders
-  - Cybersecurity Analysts investigating data breaches
-  - Corporate Compliance & Legal Discovery Teams
-  - Academic Students & Researchers preparing for Security Engineering roles
+## 2. Creative Concept: The Forensic Evidence Workbench
+TRACEVAULT combines three design influences into one coherent, professional workstation:
+1. **Forensic Laboratory:** Structured layouts, precise technical metadata, evidence references, and verification logs.
+2. **Digital Evidence Archive:** Professional archival aesthetic with organized registers, case references, and chronological ledgers.
+3. **Cryptographic Workstation:** SHA-256 hashes, verification comparisons, and file fingerprints presented in technical monospace panels.
+
+### Color System & Visual Identity
+| Element | Hex Code | Purpose |
+|---|---|---|
+| Main Background | `#F2F4F1` | Calm, neutral workstation background |
+| Primary Surface | `#FFFFFF` | Core panels and evidence cards |
+| Secondary Surface | `#E9EEEA` | Supporting technical panels & data containers |
+| Primary Text | `#202A27` | High-contrast readable typography |
+| Secondary Text | `#697570` | Supporting captions and metadata labels |
+| Deep Forest Accent | `#315F50` | Primary actions and active navigation |
+| Muted Sage | `#91AA9D` | Subtle borders and secondary accents |
+| Technical Accent | `#527C78` | Monospace labels and cryptographic badges |
+| Border Color | `#DCE3DE` | Clean, thin 1px neutral framing |
+| Verified Status | `#287A54` | Cryptographic match & confirmed integrity |
+| Pending Status | `#B77B29` | Pending verification or in-transit custody |
+| Integrity Discrepancy | `#B74747` | Bitstream alteration or hash mismatch alert |
 
 ---
 
-## 3. Core Features
-- **Evidence Registration:** Ingests any binary or text file format, generates unique IDs (`EV-YYYY-XXXX`), and preserves original files in vault storage.
-- **Multi-Algorithm Hashing:** Computes SHA-256, MD5, and SHA-1 simultaneously via 64KB chunked streaming to handle large files with minimal RAM.
-- **Deep Metadata Inspection:** Detects file header signatures (magic bytes) across raster images, video containers, SQLite databases, executables, and plain text.
-- **Extension & MIME Spoofing Alerts:** Flags files whose extension diverges from binary header signatures (e.g. executable PE payload disguised as an image or text file).
-- **Shannon Entropy Analysis:** Calculates information density ($H = -\sum p_i \log_2 p_i$) on a 0.0 to 8.0 scale to identify encryption, packed malware, or compressed files.
-- **Cross-Case Duplicate Detection:** Identifies identical SHA-256 fingerprints across separate cases to detect cross-incident artifacts.
-- **Tampering Verification Engine:** Compares current file payloads against baseline hashes using constant-time comparison (`hmac.compare_digest`). Highlights differing digests upon mismatch.
-- **Chain of Custody Tracking:** Records releases and receipts with mandatory reasons, notes, active custodian updates, and verifiable signature tokens.
-- **Chained Audit Ledger:** Merkle-style sequential chaining ($\text{curr\_hash} = \text{SHA256}(\text{prev\_hash} + \text{data})$) detecting manual SQL modifications.
-- **Audit Reporting:** Generates court-ready PDF Evidence and Chain-of-Custody Certificates using ReportLab, along with CSV and JSON exports.
+## 3. Workstation Pages & Workflows
+
+1. **Overview (Evidence Intelligence):** Command desk displaying key metrics (Registered Evidence, Verified Integrity, Pending Verification, Integrity Discrepancies), active evidence register, and chronological custody activity timeline.
+2. **Evidence Intake:** Controlled 4-step acquisition workflow (File Acquisition, Evidence Description, Cryptographic Fingerprint, and Review & Registration).
+3. **Evidence Repository:** Central archive inventory with multi-criteria search (Case, Category, Status) and textual file-type badges (`IMAGE`, `DOCUMENT`, `VIDEO`, `LOG`, `ARCHIVE`, `BINARY`).
+4. **Integrity Lab:** Signature cryptographic comparison workspace featuring side-by-side reference vs. instance hash inspection, character-level divergence detection, and permanent verification logging.
+5. **Chain of Custody:** Immutable chronological ledger of possession, transfer reasons, and cryptographic receipt tokens.
+6. **Audit & Documentation:** Publication-grade PDF certificate generator via ReportLab, markdown reports, case manifests (CSV/JSON), and full activity logs.
+7. **Settings:** Cryptographic audit chain integrity validator, examiner profile switcher, storage telemetry, and demo database reset.
 
 ---
 
-## 4. Workstation Interface & Screenshots
+## 4. Workstation Screenshots
 
-The workstation interface follows a restrained, professional color palette (`#F4F6F5` background, `#FFFFFF` surfaces, `#315F50` pine green accent, `#202927` dark text, `#E1E6E3` borders) with monospace cryptographic identifiers and zero decorative cyber/hacker styling.
+### 4.1 Evidence Intelligence Overview
+![Evidence Intelligence](screenshots/01-overview-dashboard.png)
+*Figure 1: Evidence Intelligence command desk displaying summary metrics, recent evidence register, and custody stream.*
 
-### 4.1 Evidence Overview Dashboard
-![Evidence Overview](screenshots/01-overview-dashboard.png)
-*Figure 1: Workstation overview presenting key evidence counts, recent evidence inventory, and chronological activity stream.*
+### 4.2 Evidence Intake Workflow
+![Evidence Intake](screenshots/02-register-evidence.png)
+*Figure 2: Controlled intake sequence with binary header inspection, Shannon entropy analysis, and baseline SHA-256 anchoring.*
 
-### 4.2 Evidence Registration & Metadata Preview
-![Register Evidence](screenshots/02-register-evidence.png)
-*Figure 2: Guided intake workflow with magic byte inspection, Shannon entropy analysis, and live SHA-256 calculation.*
+### 4.3 Integrity Laboratory (Tampering Mismatch)
+![Integrity Laboratory](screenshots/03-integrity-verification-mismatch.png)
+*Figure 3: Side-by-side cryptographic hash comparison displaying an Integrity Mismatch alert and divergence details.*
 
-### 4.3 Integrity Verification & Tampering Alert
-![Integrity Verification](screenshots/03-integrity-verification-mismatch.png)
-*Figure 3: Verification engine displaying an Integrity Mismatch alert with side-by-side differing SHA-256 digests.*
-
-### 4.4 Chain-of-Custody Timeline & Transfer
+### 4.4 Chain of Custody Timeline Ledger
 ![Chain of Custody](screenshots/04-chain-of-custody-timeline.png)
-*Figure 4: Chronological custody transfer timeline, active custodian card, and certified handover authorization form.*
+*Figure 4: Chronological custody transfer timeline, active legal custodian card, and certified handover authorization form.*
 
 ---
 
