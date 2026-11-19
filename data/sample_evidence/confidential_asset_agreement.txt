@@ -1,0 +1,4 @@
+Project Alpha technical specification notes.
+Date: 2026-11-10.
+File digest reference: DOC-EXP-2026-884.
+Test sample document for cryptographic integrity verification.

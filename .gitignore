@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment and secrets
+.env
+*.local.db
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+data/*.db*
+!data/README.md
+
+# IDEs
+.vscode/
+.idea/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# App data storage uploads (preserve samples, ignore runtime vault cache if needed)
+data/vault_storage/*
+!data/vault_storage/.gitkeep
