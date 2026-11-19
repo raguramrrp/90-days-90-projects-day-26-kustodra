@@ -1,7 +1,7 @@
 """
 TRACEVAULT - Database Seeding Script
-Populates initial users, forensic cases, registered evidence,
-custody transfers, integrity checks, and chained audit logs.
+Populates initial system users, investigative cases, registered evidence exhibits,
+custody transfer logs, integrity verification records, and chained audit logs.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from scripts.generate_sample_evidence import create_sample_files
 def seed_database(db_path: str | Path | None = None,
                   storage_dir: str | Path | None = None,
                   samples_dir: str | Path | None = None) -> None:
-    """Populate database with reproducible, realistic forensic demo records."""
+    """Populate database with clean, realistic forensic demonstration records."""
     db_file = Path(db_path) if db_path else PROJECT_ROOT / "data" / "tracevault.db"
     storage_path = Path(storage_dir) if storage_dir else PROJECT_ROOT / "data" / "vault_storage"
     samples_path = Path(samples_dir) if samples_dir else PROJECT_ROOT / "data" / "sample_evidence"
@@ -36,24 +36,23 @@ def seed_database(db_path: str | Path | None = None,
 
     # 1. Ensure sample files exist
     create_sample_files(samples_path)
-
     storage_path.mkdir(parents=True, exist_ok=True)
 
-    print("[INFO] Seeding forensic system users...")
+    print("[INFO] Seeding neutral system users...")
     users = [
-        ("USR-101", "rram", "Special Agent Ragu Ram", "Lead Forensic Examiner", "FE-8842", "Digital Forensics & Cyber Defense Lab", "rram@tracevault.internal"),
-        ("USR-102", "svance", "Detective Sarah Vance", "Senior Cyber Investigator", "INV-2201", "Financial Crimes Task Force", "svance@taskforce.gov"),
-        ("USR-103", "mchen", "Marcus Chen", "Evidence Vault Custodian", "CUST-4419", "Central Evidence Depository", "mchen@vault.internal"),
-        ("USR-104", "erostova", "Elena Rostova", "Digital Evidence Prosecutor", "PROS-1092", "Office of the State Attorney", "erostova@justice.gov"),
+        ("USR-101", "examiner", "Forensic Examiner", "Senior Examiner", "EX-01", "Digital Forensics Laboratory", "examiner@forensics.lab"),
+        ("USR-102", "investigator", "Lead Investigator", "Case Investigator", "INV-01", "Cybercrime Investigation Unit", "investigator@investigations.unit"),
+        ("USR-103", "custodian", "Evidence Custodian", "Vault Custodian", "CUST-01", "Central Evidence Depository", "custodian@vault.depository"),
+        ("USR-104", "legal", "Legal Liaison", "Evidence Reviewer", "REV-01", "Legal Discovery Office", "legal@discovery.office"),
     ]
     for u in users:
         db.add_user(*u)
 
     print("[INFO] Seeding investigative cases...")
     cases = [
-        ("CASE-2026-CR-0842", "Operation Silver Lattice: Offshore Exfiltration & Wire Fraud", "Detective Sarah Vance", "Eastern Judicial District", "Active Investigation", "Investigation into unauthorized wire transfers and API key theft."),
-        ("CASE-2026-CR-0915", "Incident Sentinel: Perimeter CCTV Tampering & Breach", "Special Agent Ragu Ram", "Metro Security Command", "Active Investigation", "Physical perimeter penetration combined with attempted CCTV log wiping."),
-        ("CASE-2026-CV-0114", "Aura Holdings vs Pacific Capital: Code Leak Arbitration", "Detective Sarah Vance", "Commercial Arbitration Tribunal", "Pending Trial", "Proprietary algorithmic model misappropriation claim.")
+        ("CASE-2026-0842", "System Intrusion & Unauthorized Data Access", "Lead Investigator", "District Jurisdiction", "Active Investigation", "Investigation into gateway intrusion and data extraction attempts."),
+        ("CASE-2026-0915", "Facility Access & Perimeter Security Breach", "Forensic Examiner", "Regional Jurisdiction", "Active Investigation", "Physical security alert investigation with perimeter footage inspection."),
+        ("CASE-2026-0114", "Proprietary Data Arbitrage Audit", "Lead Investigator", "Commercial Arbitration", "Pending Trial", "Audit of proprietary specifications and access logs.")
     ]
     for c in cases:
         db.add_case(*c)
@@ -64,67 +63,67 @@ def seed_database(db_path: str | Path | None = None,
     evidence_defs = [
         {
             "evidence_id": "EV-2026-0001",
-            "case_id": "CASE-2026-CR-0842",
-            "title": "Compromised Gateway Server Access Log",
-            "description": "Raw Apache HTTP access log containing SQL injection probe and exfiltration requests.",
+            "case_id": "CASE-2026-0842",
+            "title": "Gateway Server Access Log",
+            "description": "HTTP server access log with authentication probe and extraction records.",
             "source_sample": "server_access_log.log",
             "category": "System & Audit Log",
-            "collected_by": "Detective Sarah Vance",
+            "collected_by": "Lead Investigator",
             "registered_by_id": "USR-102",
             "current_custodian_id": "USR-101",  # Transferred to examiner
-            "collection_location": "Server Rack B-12, Data Center Alpha, Rack Mount IP 10.0.4.1",
+            "collection_location": "Server Rack B-12, Data Center Alpha",
             "collection_date": "2026-11-18 04:45:00 UTC"
         },
         {
             "evidence_id": "EV-2026-0002",
-            "case_id": "CASE-2026-CR-0915",
-            "title": "Perimeter Cam 04 High-Resolution Still Frame",
-            "description": "Security camera still frame captured at perimeter sector 4 during alarm trigger.",
+            "case_id": "CASE-2026-0915",
+            "title": "Perimeter Cam 04 Still Frame",
+            "description": "Security camera still frame captured during perimeter alarm trigger.",
             "source_sample": "surveillance_cam4_frame109.png",
             "category": "Forensic Still Image",
-            "collected_by": "Special Agent Ragu Ram",
+            "collected_by": "Forensic Examiner",
             "registered_by_id": "USR-101",
             "current_custodian_id": "USR-103",  # In Vault Storage
-            "collection_location": "Security Network Gateway 192.168.1.105",
+            "collection_location": "Camera Sensor Network Gate 4",
             "collection_date": "2026-11-18 04:16:30 UTC"
         },
         {
             "evidence_id": "EV-2026-0003",
-            "case_id": "CASE-2026-CR-0842",
-            "title": "Suspect Offshore Wire Transfer CSV Ledger",
-            "description": "Exported transaction ledger detailing illicit bank transfers to offshore accounts.",
+            "case_id": "CASE-2026-0842",
+            "title": "Financial Transaction Audit Ledger",
+            "description": "Exported transaction ledger detailing transfer records and account routing.",
             "source_sample": "financial_audit_ledger.csv",
             "category": "Digital Document",
-            "collected_by": "Detective Sarah Vance",
+            "collected_by": "Lead Investigator",
             "registered_by_id": "USR-102",
             "current_custodian_id": "USR-101",
-            "collection_location": "Seized Laptop Workstation DESKTOP-FC89",
+            "collection_location": "Seized Workstation Drive",
             "collection_date": "2026-11-18 08:30:00 UTC"
         },
         {
             "evidence_id": "EV-2026-0004",
-            "case_id": "CASE-2026-CV-0114",
-            "title": "Technical Architecture Specification Note",
-            "description": "Technical document outlining security parameters and hashing standards.",
+            "case_id": "CASE-2026-0114",
+            "title": "Technical Specification Notes",
+            "description": "Specification document outlining system parameters and hashing standards.",
             "source_sample": "confidential_asset_agreement.txt",
             "category": "Digital Document",
-            "collected_by": "Detective Sarah Vance",
+            "collected_by": "Lead Investigator",
             "registered_by_id": "USR-102",
             "current_custodian_id": "USR-102",
-            "collection_location": "Workstation File Share",
+            "collection_location": "Internal File Share",
             "collection_date": "2026-11-17 16:00:00 UTC"
         },
         {
             "evidence_id": "EV-2026-0005",
-            "case_id": "CASE-2026-CR-0842",
-            "title": "Unidentified Encrypted Payload Binary",
-            "description": "High-entropy binary artifact discovered in root directory /tmp/cache_sys.bin.",
+            "case_id": "CASE-2026-0842",
+            "title": "Suspicious Encrypted Binary Payload",
+            "description": "High-entropy binary artifact discovered in system temporary directory.",
             "source_sample": "suspect_encrypted_payload.bin",
             "category": "Encrypted / Packed Payload",
-            "collected_by": "Special Agent Ragu Ram",
+            "collected_by": "Forensic Examiner",
             "registered_by_id": "USR-101",
             "current_custodian_id": "USR-103",
-            "collection_location": "Server /tmp partition root",
+            "collection_location": "System /tmp partition",
             "collection_date": "2026-11-18 05:12:00 UTC"
         }
     ]
@@ -191,7 +190,7 @@ def seed_database(db_path: str | Path | None = None,
             "result_status": "Match",
             "tamper_details": None,
             "check_mode": "Vault Stored Baseline Check",
-            "notes": "Initial intake cryptographic verification performed by Lead Examiner. Hashes match identically."
+            "notes": "Intake verification performed. Bitstream hashes match."
         })
         audit.log_event(
             event_type="INTEGRITY_CHECK_MATCH",
@@ -200,7 +199,7 @@ def seed_database(db_path: str | Path | None = None,
             details="Cryptographic SHA-256 verification MATCH confirmed against intake baseline."
         )
 
-    # 4. Record initial custody transfers for EV-2026-0001 and EV-2026-0002
+    # 4. Record initial custody transfers
     print("[INFO] Logging custody transfer events...")
     custody.transfer_custody(
         evidence_id="EV-2026-0001",
@@ -208,7 +207,7 @@ def seed_database(db_path: str | Path | None = None,
         receiver_id="USR-101",
         transfer_reason="Forensic Lab Analysis",
         recorded_by_id="USR-102",
-        notes="Transferred from crime scene intake to Cyber Forensics Lab workstation for deep packet and log parsing.",
+        notes="Transferred from intake to Forensic Laboratory for log parsing.",
         verify_hash_now=True,
         current_file_hash=ev1["sha256_hash"]
     )
@@ -221,12 +220,12 @@ def seed_database(db_path: str | Path | None = None,
             receiver_id="USR-103",
             transfer_reason="Secure Long-Term Vault Storage",
             recorded_by_id="USR-101",
-            notes="Intake and image EXIF verification complete; transferred to Central Vault for court lockbox custody.",
+            notes="Intake inspection completed. Transferred to Central Evidence Depository.",
             verify_hash_now=True,
             current_file_hash=ev2["sha256_hash"]
         )
 
-    print("[SUCCESS] Database seeded successfully with realistic forensic records!")
+    print("[SUCCESS] Database seeded successfully with clean forensic demo records!")
 
 
 if __name__ == "__main__":

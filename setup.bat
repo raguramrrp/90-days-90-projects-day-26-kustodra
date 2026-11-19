@@ -1,6 +1,8 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+cd /d "%~dp0"
+
 echo ======================================================================
 echo    TRACEVAULT - Digital Evidence Integrity & Custody Setup (Windows)
 echo    Day 26 - 90 Days 90 Projects Challenge

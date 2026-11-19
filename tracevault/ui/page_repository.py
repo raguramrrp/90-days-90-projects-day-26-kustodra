@@ -1,85 +1,105 @@
 """
 TRACEVAULT - Evidence Repository Page
-Structured, searchable forensic evidence inventory table with multi-factor filters.
+Professional evidentiary data table with compact search and multi-criteria filters.
 """
 
 from __future__ import annotations
 import streamlit as st
 import pandas as pd
 from tracevault.database import DatabaseManager
-from tracevault.ui.components import render_status_badge
 
 
 def render_page(db: DatabaseManager, current_user: dict) -> None:
     """Render the Evidence Repository page."""
     st.markdown("### Evidence Repository")
-    st.markdown("<div style='font-size: 13px; color: #68736F; margin-bottom: 16px;'>Forensic evidentiary inventory. Search, filter, and access complete case provenance records.</div>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 13px; color: #68736F; margin-top: -8px; margin-bottom: 12px;'>Search and inspect all registered digital evidence artifacts and their integrity states.</p>", unsafe_allow_html=True)
 
-    # Filter Bar
-    col_s, col_cat, col_case, col_stat = st.columns([3, 2, 2, 2])
-    with col_s:
-        search_query = st.text_input("Search (ID, Title, Filename, Hash)", placeholder="Search evidence...", label_visibility="collapsed")
-    with col_cat:
-        cat_filter = st.selectbox(
-            "Category Filter",
-            options=["All", "System & Audit Log", "Forensic Still Image", "Surveillance Video", "Digital Document", "Audio Recording", "Forensic Disk Image", "Encrypted / Packed Payload", "Compressed / Encrypted Archive", "Executable / Malware Artifact"],
-            label_visibility="collapsed"
-        )
-    with col_case:
-        cases = db.get_cases()
-        case_filter_options = ["All"] + [c["case_id"] for c in cases]
-        case_filter = st.selectbox("Case Filter", options=case_filter_options, label_visibility="collapsed")
-    with col_stat:
-        status_filter = st.selectbox("Status Filter", options=["All", "Verified", "Not Yet Verified", "Integrity Mismatch", "Verification Failed"], label_visibility="collapsed")
+    # Compact Search & Filter Bar
+    with st.container(border=True):
+        col_s, col_cat, col_case, col_stat = st.columns([3, 2, 2, 2])
+        with col_s:
+            search_query = st.text_input("Search", placeholder="Search by ID, filename, or hash...", label_visibility="collapsed")
+        with col_cat:
+            cat_filter = st.selectbox(
+                "Category Filter",
+                options=["All Categories", "System & Audit Log", "Forensic Still Image", "Surveillance Video", "Digital Document", "Audio Recording", "Forensic Disk Image", "Encrypted / Packed Payload", "Compressed / Encrypted Archive", "Executable / Malware Artifact"],
+                label_visibility="collapsed"
+            )
+        with col_case:
+            cases = db.get_cases()
+            case_options = ["All Cases"] + [c["case_id"] for c in cases]
+            case_filter = st.selectbox("Case Filter", options=case_options, label_visibility="collapsed")
+        with col_stat:
+            status_filter = st.selectbox(
+                "Status Filter",
+                options=["All Statuses", "Verified", "Not Yet Verified", "Integrity Mismatch", "Verification Failed"],
+                label_visibility="collapsed"
+            )
+
+    filter_cat = None if cat_filter == "All Categories" else cat_filter
+    filter_case = None if case_filter == "All Cases" else case_filter
+    filter_stat = None if status_filter == "All Statuses" else status_filter
 
     evidence_list = db.get_evidence_list(
         search_query=search_query,
-        category_filter=cat_filter,
-        case_filter=case_filter,
-        status_filter=status_filter
+        category_filter=filter_cat,
+        case_filter=filter_case,
+        status_filter=filter_stat
     )
 
-    st.markdown(f"<div style='font-size: 12px; color: #68736F; margin-bottom: 10px;'>Displaying <b>{len(evidence_list)}</b> evidence item(s) matching criteria</div>", unsafe_allow_html=True)
-
     if not evidence_list:
-        st.info("No evidence records match the selected search or filter criteria.")
+        st.info("No evidence records match the selected criteria.")
         return
 
-    # Render structured table with inspection actions
-    st.markdown("""
-    <div class="tv-card" style="padding: 0px; overflow: hidden;">
-    """, unsafe_allow_html=True)
+    # Data Table Container
+    with st.container(border=True):
+        st.markdown(f"<div style='font-size: 12px; color: #68736F; margin-bottom: 8px;'>Showing <b>{len(evidence_list)}</b> registered record(s)</div>", unsafe_allow_html=True)
 
-    # Use interactive selection
-    for idx, ev in enumerate(evidence_list):
-        col_id, col_info, col_case_ref, col_reg, col_cust, col_st, col_act = st.columns([1.2, 3, 1.8, 1.4, 1.6, 1.5, 1.2])
+        table_rows = []
+        for e in evidence_list:
+            size_bytes = e["file_size_bytes"]
+            size_str = f"{size_bytes / 1024:.1f} KB" if size_bytes < 1024 * 1024 else f"{size_bytes / (1024 * 1024):.2f} MB" if size_bytes >= 1024 * 1024 else f"{size_bytes} B"
+            table_rows.append({
+                "Evidence ID": e["evidence_id"],
+                "Filename": e["original_filename"],
+                "File Type": e["category"],
+                "Size": size_str,
+                "Case Reference": e["case_id"],
+                "Registered Date": e["created_at"][:10] if e.get("created_at") else "N/A",
+                "Current Custodian": e.get("custodian_name", "N/A"),
+                "Integrity Status": e["integrity_status"]
+            })
 
-        status_html = render_status_badge(ev["integrity_status"])
-        reg_date = ev["created_at"][:10] if ev.get("created_at") else "N/A"
+        df_repo = pd.DataFrame(table_rows)
 
-        with col_id:
-            st.markdown(f"<div style='padding-top: 10px; font-weight: 700; color: #315F50; font-size: 12px;'>{ev['evidence_id']}</div>", unsafe_allow_html=True)
-        with col_info:
-            st.markdown(f"""
-            <div style='padding-top: 6px;'>
-                <div style='font-size: 13px; font-weight: 600; color: #202927;'>{ev['title']}</div>
-                <div style='font-size: 11px; color: #68736F;'>{ev['original_filename']} &bull; {ev['category']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with col_case_ref:
-            st.markdown(f"<div style='padding-top: 10px; font-size: 12px; color: #4A5653;'>{ev['case_id']}</div>", unsafe_allow_html=True)
-        with col_reg:
-            st.markdown(f"<div style='padding-top: 10px; font-size: 12px; color: #68736F;'>{reg_date}</div>", unsafe_allow_html=True)
-        with col_cust:
-            st.markdown(f"<div style='padding-top: 10px; font-size: 12px; color: #202927;'>{ev.get('custodian_name', 'N/A')}</div>", unsafe_allow_html=True)
-        with col_st:
-            st.markdown(f"<div style='padding-top: 8px;'>{status_html}</div>", unsafe_allow_html=True)
-        with col_act:
-            if st.button("Inspect", key=f"btn_inspect_{ev['evidence_id']}_{idx}"):
-                st.session_state["selected_evidence_id"] = ev["evidence_id"]
+        st.dataframe(
+            df_repo,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Evidence ID": st.column_config.TextColumn("Evidence ID", width="small"),
+                "Filename": st.column_config.TextColumn("Filename", width="medium"),
+                "File Type": st.column_config.TextColumn("File Type", width="medium"),
+                "Size": st.column_config.TextColumn("Size", width="small"),
+                "Case Reference": st.column_config.TextColumn("Case", width="small"),
+                "Registered Date": st.column_config.TextColumn("Registered", width="small"),
+                "Current Custodian": st.column_config.TextColumn("Custodian", width="medium"),
+                "Integrity Status": st.column_config.TextColumn("Status", width="small")
+            }
+        )
+
+        # Record Inspector
+        col_pick, col_inspect = st.columns([3, 1])
+        with col_pick:
+            record_options = [e["evidence_id"] for e in evidence_list]
+            chosen_record = st.selectbox(
+                "Select record to inspect",
+                options=record_options,
+                format_func=lambda x: f"{x} — {[e['title'] for e in evidence_list if e['evidence_id'] == x][0]}",
+                label_visibility="collapsed"
+            )
+        with col_inspect:
+            if st.button("Inspect Details", key="btn_inspect_repo", type="primary", use_container_width=True):
+                st.session_state["selected_evidence_id"] = chosen_record
                 st.session_state["active_nav"] = "Evidence Details & Metadata"
                 st.rerun()
-
-        st.markdown("<hr style='margin: 0; border: none; border-top: 1px solid #E1E6E3;'>", unsafe_allow_html=True)
-
-    st.markdown("</div>", unsafe_allow_html=True)

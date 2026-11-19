@@ -1,12 +1,14 @@
 @echo off
 setlocal
 
+cd /d "%~dp0"
+
 echo ======================================================================
 echo    Starting TRACEVAULT - Digital Evidence Workstation
 echo ======================================================================
 
 if not exist .venv\Scripts\python.exe (
-    echo [ERROR] Virtual environment not detected.
+    echo [ERROR] Virtual environment not detected at .venv\Scripts\python.exe
     echo Please execute setup.bat first to configure dependencies.
     echo.
     pause

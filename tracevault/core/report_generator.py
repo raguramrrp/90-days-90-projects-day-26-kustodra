@@ -10,18 +10,38 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, KeepTogether
-)
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, KeepTogether
+    )
+    HAS_REPORTLAB = True
+except ImportError:
+    HAS_REPORTLAB = False
+    colors = None
+    letter = None
+    getSampleStyleSheet = None
+    ParagraphStyle = None
+    SimpleDocTemplate = None
+    Paragraph = None
+    Spacer = None
+    Table = None
+    TableStyle = None
+    HRFlowable = None
+    KeepTogether = None
 
 from tracevault.database import get_iso_now
 
 
 class ReportGenerator:
     """Generates standardized PDF and tabular evidence documentation."""
+
+    @staticmethod
+    def is_available() -> bool:
+        """Check if PDF generation dependencies (ReportLab) are installed."""
+        return HAS_REPORTLAB
 
     @staticmethod
     def generate_evidence_certificate(evidence: Dict[str, Any],
@@ -33,6 +53,12 @@ class ReportGenerator:
         Build an official, publication-quality PDF Evidence Custody & Integrity Certificate.
         Returns PDF bytes suitable for browser download or disk saving.
         """
+        if not HAS_REPORTLAB:
+            raise RuntimeError(
+                "ReportLab is not installed in the active Python environment. "
+                "Please run: pip install reportlab"
+            )
+
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
@@ -143,7 +169,7 @@ class ReportGenerator:
                 Paragraph("<b>Exact File Size:</b>", body_style),
                 Paragraph(f"{evidence['file_size_bytes']:,} Bytes", body_style),
                 Paragraph("<b>Current Custodian:</b>", body_style),
-                Paragraph(f"{evidence.get('custodian_name', evidence['current_custodian_id'])}", body_style)
+                Paragraph(str(evidence.get('custodian_name') or evidence.get('current_custodian_id', 'N/A')), body_style)
             ],
             [
                 Paragraph("<b>Collection Date:</b>", body_style),
@@ -278,3 +304,86 @@ class ReportGenerator:
         doc.build(story)
         buffer.seek(0)
         return buffer.getvalue()
+
+    @staticmethod
+    def generate_markdown_report(evidence: Dict[str, Any],
+                                custody_logs: List[Dict[str, Any]],
+                                integrity_checks: List[Dict[str, Any]],
+                                generated_by_name: str,
+                                agency_name: str = "Digital Forensics & Evidence Integrity Workstation") -> str:
+        """
+        Generate a standardized plain-text/markdown evidence custody and integrity report.
+        Can be used directly or exported when PDF generation is unavailable.
+        """
+        now_str = get_iso_now()
+        report_ref = f"REP-{evidence['evidence_id']}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}"
+
+        lines = [
+            f"# TRACEVAULT — Evidence Custody & Integrity Report",
+            f"**Agency / Organization:** {agency_name}",
+            f"**Report Reference:** `{report_ref}` | **Generated:** {now_str} UTC | **Examiner:** {generated_by_name}",
+            "",
+            "---",
+            "",
+            "## 1. Evidence Record & Case Identity",
+            f"- **Evidence ID:** `{evidence['evidence_id']}`",
+            f"- **Case Reference:** {evidence['case_id']} — {evidence.get('case_title', 'N/A')}",
+            f"- **Title / Label:** {evidence['title']}",
+            f"- **Category:** {evidence['category']}",
+            f"- **Original Filename:** `{evidence['original_filename']}`",
+            f"- **MIME Type / Magic:** `{evidence['mime_type']}` ({evidence.get('magic_signature', 'N/A')})",
+            f"- **File Size:** {evidence['file_size_bytes']:,} bytes",
+            f"- **Current Custodian:** {evidence.get('custodian_name') or evidence.get('current_custodian_id', 'N/A')}",
+            f"- **Collection Date:** {evidence['collection_date']}",
+            f"- **Integrity Status:** **{evidence['integrity_status']}**",
+            "",
+            "## 2. Cryptographic Baseline Hashes",
+            f"- **SHA-256:** `{evidence['sha256_hash']}`",
+            f"- **MD5:** `{evidence['md5_hash']}`",
+            f"- **SHA-1:** `{evidence['sha1_hash']}`",
+            f"- **Shannon Entropy:** {evidence['shannon_entropy']:.4f} / 8.0000 bits/byte",
+            "",
+            "## 3. Chain of Custody Timeline",
+        ]
+
+        if custody_logs:
+            lines.append("| Date (UTC) | Released By | Received By | Reason | Receipt Token |")
+            lines.append("|---|---|---|---|---|")
+            for log in custody_logs:
+                time_str = log.get("transfer_timestamp", "")[:19].replace("T", " ")
+                sender = log.get("sender_name") or log.get("sender_id", "N/A")
+                receiver = log.get("receiver_name") or log.get("receiver_id", "N/A")
+                reason = log.get("transfer_reason", "Transfer")
+                token = log.get("signature_token", "N/A")[:16] + "..." if log.get("signature_token") else "N/A"
+                lines.append(f"| {time_str} | {sender} | {receiver} | {reason} | `{token}` |")
+        else:
+            lines.append("_No custody transfers recorded. Evidence remains with initial custodian._")
+
+        lines.extend([
+            "",
+            "## 4. Integrity Verification Log",
+        ])
+
+        if integrity_checks:
+            lines.append("| Timestamp (UTC) | Examiner | Mode | Result | Calculated SHA-256 |")
+            lines.append("|---|---|---|---|---|")
+            for chk in integrity_checks:
+                time_str = str(chk.get("check_timestamp", ""))[:19].replace("T", " ")
+                examiner = chk.get("checked_by_name") or chk.get("checked_by_id", "Examiner")
+                mode = chk.get("check_mode", "Upload")
+                status = chk.get("result_status", "Unknown")
+                calc_hash = chk.get("calculated_sha256", "")
+                calc_hash_snip = calc_hash[:20] + "..." if len(calc_hash) > 20 else calc_hash
+                lines.append(f"| {time_str} | {examiner} | {mode} | **{status}** | `{calc_hash_snip}` |")
+        else:
+            lines.append("_No formal verification checks executed on this evidence item._")
+
+        lines.extend([
+            "",
+            "## 5. Forensic Notice & Disclaimer",
+            "> **Cryptographic Integrity Scope:** A SHA-256 hash proves mathematically whether file contents match a previously recorded hash; it does not independently prove who created the file or whether the original evidence was authentic. Integrity is contingent on custody continuity, secure registry access, and tamper-evident audit logging.",
+            "",
+            f"_Report compiled by TRACEVAULT v1.0 on {now_str} UTC._"
+        ])
+
+        return "\n".join(lines)
